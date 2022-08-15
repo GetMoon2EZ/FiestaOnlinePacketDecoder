@@ -25,6 +25,21 @@
 *.la
 *.a
 *.lib
+lib/
+
+# Tins header files
+*tins/
+# Pcap header files
+*pcap/
+bittypes.h
+ip6_misc.h
+Packet32.h
+pcap-bpf.h
+pcap-namedb.h
+pcap-stdinc.h
+pcap.h
+remote-ext.h
+Win32-Extensions.h
 
 # Executables
 *.exe
