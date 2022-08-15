@@ -20,3 +20,7 @@ cmake --build .
 ## How to use
 
 To use, run the executable file that is produced by the compilation under the `src/build/Debug` folder.
+
+## Currently implemented features
+
+- [x] Print entity level, current & max HP/mana on entity selection
