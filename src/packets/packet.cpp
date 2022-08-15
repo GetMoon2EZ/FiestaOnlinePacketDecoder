@@ -1,9 +1,5 @@
 #include "fopd/fopd_packet.h"
 
-#include <iostream>
-#include <cstdint>
-#include <cstring>
-
 #include "fopd/fopd_consts.h"
 #include "fopd/fopd_types.h"
 
