@@ -10,6 +10,8 @@
 #include "fopd/fopd_utils.h"
 #include "fopd/fopd_packet.h"
 #include "fopd/fopd_packet_entity_stats.h"
+#include "fopd/fopd_packet_damage.h"
+
 
 using namespace Tins;
 
@@ -32,14 +34,15 @@ bool sniffer_callback(PDU& pkt)
             switch (fopd_pkts[i].first) {
                 case FOPD_ENTITY_CLICK_PACKET:
                 {
-                    FiestaOnlinePacketEntityStats fopd_pkt(fopd_pkts[i].second);
-                    std::cout << fopd_pkt << std::endl;
+                    FiestaOnlinePacketEntityStats entity_pkt(fopd_pkts[i].second);
+                    std::cout << entity_pkt << std::endl;
                 }
                 break;
 
                 case FOPD_DAMAGE_PACKET:
                 {
-                    std::cout << "Damage packet" << std::endl;
+                    FiestaOnlinePacketDamage damage_pkt(fopd_pkts[i].second);
+                    std::cout << damage_pkt << std::endl;
                 }
                 break;
 
