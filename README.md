@@ -24,3 +24,7 @@ To use, run the executable file that is produced by the compilation under the `s
 ## Currently implemented features
 
 - [x] Print entity level, current & max HP/mana on entity selection
+
+## Work In Progress
+
+- [x] Gather and print damage values
