@@ -6,6 +6,7 @@
 
 #include "fopd/fopd_packet.h"
 
+
 #define FOPD_ENTITY_CLICK_PACKET_PAYLOAD_MIN_LEN    (32 - FOPD_PACKET_HEADER_LEN)
 
 // Current health info
