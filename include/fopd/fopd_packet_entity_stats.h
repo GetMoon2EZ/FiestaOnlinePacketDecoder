@@ -38,7 +38,7 @@ private:
     uint32_t max_mana = 0;
     uint8_t level = 0;
 
-    fopd_status_t FiestaOnlinePacketEntityStats::parsePayload(void);
+    fopd_status_t parsePayload(void);
 
 public:
     FiestaOnlinePacketEntityStats(void) { }
