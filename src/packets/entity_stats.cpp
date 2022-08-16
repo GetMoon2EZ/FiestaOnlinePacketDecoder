@@ -58,6 +58,6 @@ std::ostream& operator<<(std::ostream& out, FiestaOnlinePacketEntityStats &pkt)
     out << "\t- Current health: " << pkt.getCurrentHealth() << std::endl;
     out << "\t- Max health: " << pkt.getMaxHealth() << std::endl;
     out << "\t- Current mana: " << pkt.getCurrentMana() << std::endl;
-    out << "\t- Max mana: " << pkt.getMaxMana() << std::endl;
+    out << "\t- Max mana: " << pkt.getMaxMana();
     return out;
 }
