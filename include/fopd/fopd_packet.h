@@ -18,7 +18,7 @@ class FiestaOnlinePacket
 {
 protected:
     // Timestamp
-    std::chrono::high_resolution_clock::time_point timestamp = 0;
+    std::chrono::high_resolution_clock::time_point timestamp;
     // Indicates the length of the payload
     uint8_t payload_len = 0;
     // Array of the header
