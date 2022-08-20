@@ -17,3 +17,8 @@ const uint8_t* FiestaOnlinePacket::getPayload(void) const
 {
     return payload;
 }
+
+const std::chrono::high_resolution_clock::time_point FiestaOnlinePacket::getTimestamp(void) const
+{
+    return this->timestamp;
+}

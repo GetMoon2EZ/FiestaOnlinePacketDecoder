@@ -2,6 +2,7 @@
 #define __FOPD_PACKETS_H__
 
 #include <iostream>
+#include <chrono>
 #include <vector>
 #include <cassert>
 
@@ -16,6 +17,8 @@
 class FiestaOnlinePacket
 {
 protected:
+    // Timestamp
+    std::chrono::high_resolution_clock::time_point timestamp = 0;
     // Indicates the length of the payload
     uint8_t payload_len = 0;
     // Array of the header
@@ -24,9 +27,13 @@ protected:
     uint8_t payload[FOPD_PACKET_PAYLOAD_MAX_LEN] = { 0 };
 
 public:
-    FiestaOnlinePacket(void) { }
+    FiestaOnlinePacket(void) {
+        this->timestamp = std::chrono::high_resolution_clock::now();
+    }
 
     FiestaOnlinePacket(uint8_t *data) {
+        // Set the timestamp
+        this->timestamp = std::chrono::high_resolution_clock::now();
         // Get payload length from data
         this->payload_len = data[FOPD_PACKET_PAYLOAD_LEN_OFFSET];
         // Payload length includes the header, need to substract header len
@@ -39,6 +46,9 @@ public:
     }
 
     FiestaOnlinePacket(std::vector<uint8_t> data) {
+        // Set the timestamp
+        this->timestamp = std::chrono::high_resolution_clock::now();
+
         uint8_t *_data = &data[0];
         this->payload_len = _data[FOPD_PACKET_PAYLOAD_LEN_OFFSET];
         // Payload length includes the header, need to substract header len
@@ -51,6 +61,7 @@ public:
     }
 
     FiestaOnlinePacket(fopd_packet_type_t packet_type) {
+        this->timestamp = std::chrono::high_resolution_clock::now();
         switch (packet_type) {
             case FOPD_DAMAGE_PACKET:
                 memcpy(this->header, FOPD_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);
@@ -67,6 +78,7 @@ public:
     uint8_t getPayloadLen(void) const;
     const uint8_t* getHeader(void) const;
     const uint8_t* getPayload(void) const;
+    const std::chrono::high_resolution_clock::time_point getTimestamp(void) const;
 };
 
 #endif // __FOPD_PACKETS_H__
