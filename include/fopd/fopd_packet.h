@@ -64,7 +64,7 @@ public:
         this->timestamp = std::chrono::high_resolution_clock::now();
         switch (packet_type) {
             case FOPD_DAMAGE_PACKET:
-                memcpy(this->header, FOPD_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);
+                memcpy(this->header, FOPD_SPELL_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);
                 break;
             case FOPD_ENTITY_CLICK_PACKET:
                 memcpy(this->header, FOPD_ENTITY_CLICK_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);

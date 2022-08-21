@@ -26,7 +26,7 @@ uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array)
 
 fopd_packet_type_t packetTypeFromHeader(uint8_t header[FOPD_PACKET_HEADER_LEN])
 {
-    if (memcmp(header, FOPD_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+    if (memcmp(header, FOPD_SPELL_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 || memcmp(header, FOPD_AA_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
         return FOPD_DAMAGE_PACKET;
     }
     else if (memcmp(header, FOPD_ENTITY_CLICK_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
