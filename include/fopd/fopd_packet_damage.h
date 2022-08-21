@@ -12,15 +12,25 @@
 #include <fopd/fopd_consts.h>
 
 
-#define FOPD_DAMAGE_PACKET_PAYLOAD_MIN_LEN  (25 - FOPD_PACKET_HEADER_LEN)
+#define FOPD_SPELL_DAMAGE_PACKET_PAYLOAD_MIN_LEN    (25 - FOPD_PACKET_HEADER_LEN)
 
-// Damage value
-#define DAMAGE_VALUE_OFFSET                 (15 - FOPD_PACKET_HEADER_LEN)
-#define DAMAGE_VALUE_LEN                    4
+// Spell damage value
+#define SPELL_DAMAGE_VALUE_OFFSET                   (15 - FOPD_PACKET_HEADER_LEN)
+#define SPELL_DAMAGE_VALUE_LEN                      4
 
 // Remaining health
-#define TARGET_REMAINING_HEALTH_OFFSET      (DAMAGE_VALUE_OFFSET + DAMAGE_VALUE_LEN)
-#define TARGET_REMAINING_HEALTH_LEN      4
+#define SPELL_TARGET_REMAINING_HEALTH_OFFSET        (SPELL_DAMAGE_VALUE_OFFSET + SPELL_DAMAGE_VALUE_LEN)
+#define SPELL_TARGET_REMAINING_HEALTH_LEN           4
+
+#define FOPD_AA_DAMAGE_PACKET_PAYLOAD_MIN_LEN       (20 - FOPD_PACKET_HEADER_LEN)
+
+// Auto-attack damage value
+#define AA_DAMAGE_VALUE_OFFSET                      (8 - FOPD_PACKET_HEADER_LEN)
+#define AA_DAMAGE_VALUE_LEN                         4
+
+// Remaining health
+#define AA_TARGET_REMAINING_HEALTH_OFFSET           (AA_DAMAGE_VALUE_OFFSET + AA_DAMAGE_VALUE_LEN)
+#define AA_TARGET_REMAINING_HEALTH_LEN              4
 
 class FiestaOnlinePacketDamage: public FiestaOnlinePacket
 {

@@ -4,19 +4,39 @@
 #include <iostream>
 
 #include "fopd/fopd_types.h"
+#include "fopd/fopd_consts.h"
 
 
 using namespace std;
 
 fopd_status_t FiestaOnlinePacketDamage::parsePayload(void)
 {
-    if (this->payload_len < FOPD_DAMAGE_PACKET_PAYLOAD_MIN_LEN) {
-        cerr << "[ERROR] Cannot parse given data" << endl;
-        return FOPD_ERROR;
-    }
+    switch (this->header[0]) {
+        case FOPD_AA_DAMAGE_PACKET_HEADER_B0:
+        {
+            if (this->payload_len < FOPD_AA_DAMAGE_PACKET_PAYLOAD_MIN_LEN) {
+                cerr << "[ERROR] Cannot parse given data" << endl;
+                return FOPD_ERROR;
+            }
+            this->damage_value = little_endian_byte_array_to_uint32(this->payload + AA_DAMAGE_VALUE_OFFSET);
+            this->target_remaining_health = little_endian_byte_array_to_uint32(this->payload + AA_TARGET_REMAINING_HEALTH_OFFSET);
+        }
+        break;
 
-    this->damage_value = little_endian_byte_array_to_uint32(this->payload + DAMAGE_VALUE_OFFSET);
-    this->target_remaining_health = little_endian_byte_array_to_uint32(this->payload + TARGET_REMAINING_HEALTH_OFFSET);
+        case FOPD_SPELL_DAMAGE_PACKET_HEADER_B0:
+        {
+            if (this->payload_len < FOPD_SPELL_DAMAGE_PACKET_PAYLOAD_MIN_LEN) {
+                cerr << "[ERROR] Cannot parse given data" << endl;
+                return FOPD_ERROR;
+            }
+            this->damage_value = little_endian_byte_array_to_uint32(this->payload + SPELL_DAMAGE_VALUE_OFFSET);
+            this->target_remaining_health = little_endian_byte_array_to_uint32(this->payload + SPELL_TARGET_REMAINING_HEALTH_OFFSET);
+        }
+        break;
+
+        default:
+            return FOPD_ERROR;
+    }
 
     return FOPD_OK;
 }
