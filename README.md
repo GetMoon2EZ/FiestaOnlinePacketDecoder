@@ -27,4 +27,4 @@ To use, run the executable file that is produced by the compilation under the `s
 
 ## Work In Progress
 
-- [x] Gather and print damage values
+- [x] Display an accurage DPS of the player
