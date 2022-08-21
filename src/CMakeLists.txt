@@ -28,6 +28,8 @@ set(SOURCE_FILES
     "packets/damage.cpp"
     "packets/entity_stats.cpp"
     "packets/packet.cpp"
+    "threads/dps_meter.cpp"
+    "threads/packet_sniffer.cpp"
 )
 
 #####################
