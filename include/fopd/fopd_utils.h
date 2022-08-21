@@ -20,8 +20,8 @@ uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array);
 /**
  * @brief Get the corresponding packet type from a header
  * 
- * @param header Header byte array 
- * @return fopd_packet_type_t 
+ * @param header Header byte array
+ * @return fopd_packet_type_t
  */
 fopd_packet_type_t packetTypeFromHeader(uint8_t header[FOPD_PACKET_HEADER_LEN]);
 
