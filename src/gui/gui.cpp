@@ -1,27 +1,41 @@
 #include "fopd/gui.h"
 
-#include <iostream>
-
-// Copied from imgui's examples
-#include "imgui.h"
-#include "backends/imgui_impl_win32.h"
-#include "backends/imgui_impl_dx12.h"
-
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <tchar.h>
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
 
-// void run_gui(void)
-// {
-//     // Uses ImGUI to render the information
-//     // This function should have access to 
-//     // the data produced by each thread.
+void build_gui(void)
+{
+    // Uses ImGUI to display some information
+    // The data is stored in a singleton
+    // The singleton can be polled using one of its methods
+    // Making it thread safe should not be too hard :)
 
-//     std::cout << "GUI RUNNING HERE" << std::endl;
-// }
+    int ping = 0;
+    int max_dps = 0, dps = 0;
 
-// TODO: check out imgui examples to get a first GUI app running.0
+    ImGui::Begin("Debug info");
+
+    // Display frame rate
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("Ping: %d ms", ping);
+    ImGui::End();
+
+    ImGui::Begin("DPS meter");
+    ImGui::Text("Max DPS    : %d", max_dps);
+    ImGui::Text("Current DPS: %d", dps);
+    ImGui::End();
+
+}
+
+// Code below comes from Dear ImGui examples
+// IT SHOULD NOT BE MODIFIED !!
+// The GUI elements should be constructed in build_gui.
+// run_gui takes care of the overhead caused by DirectX 12
 
 // Dear ImGui: standalone example application for DirectX 12
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
@@ -30,14 +44,6 @@
 // Important: to compile on 32-bit systems, the DirectX12 backend requires code to be compiled with '#define ImTextureID ImU64'.
 // This is because we need ImTextureID to carry a 64-bit value and by default ImTextureID is defined as void*.
 // This define is set in the example .vcxproj file and need to be replicated in your app or by adding it to your imconfig.h file.
-
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx12.h"
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <tchar.h>
-
 struct FrameContext
 {
     ID3D12CommandAllocator* CommandAllocator;
@@ -79,7 +85,7 @@ int run_gui(void)
     //ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL };
     ::RegisterClassEx(&wc);
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Dear ImGui DirectX12 Example"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Fiesta Online DPS Meter"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -165,42 +171,8 @@ int run_gui(void)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
+        // Build the GUI elements in this function
+        build_gui();
 
         // Rendering
         ImGui::Render();
