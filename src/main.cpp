@@ -22,7 +22,7 @@ using namespace std;
 int main() {
     cout << "Starting ... " << endl;
 
-    const int DPS_UPDATE_TIME_MS = 1000;
+    const int DPS_UPDATE_TIME_MS = 100;
     fopd_damage_queue dmg_q;
 
     thread t1(dps_thread, &dmg_q, DPS_UPDATE_TIME_MS);
