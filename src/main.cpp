@@ -29,10 +29,13 @@ int main() {
     thread t1(dps_thread, &dmg_q, DPS_UPDATE_TIME_MS);
     thread t2(sniffer_thread, &dmg_q);
 
+    // Detach threads to avoid a call to terminate
+    t1.detach();
+    t2.detach();
+    
     // Run the UI in the main thread
     run_gui();
-    while (1) { }
 
-    cout << "Done." << std::endl;
+    // Exit whenever the GUI returns (ie: window is closed)
     return 0;
 }
