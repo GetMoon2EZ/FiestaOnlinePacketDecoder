@@ -46,6 +46,9 @@ fopd_packet_type_t packetTypeFromData(uint8_t *data)
 
 vector<pair<fopd_packet_type_t, vector<uint8_t>>> getPacketsFromRawTCP(uint8_t *tcp_data, uint32_t tcp_data_len)
 {
+    if (tcp_data == NULL)
+        return vector<pair<fopd_packet_type_t, vector<uint8_t>>> ();
+
     std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> ret;
     uint32_t pos = 0;
 
