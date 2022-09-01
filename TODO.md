@@ -3,6 +3,7 @@
 - [ ] Implement Unknown packet (generic solution)
 - [ ] Find a way to distinguish damage done and damage received
 - [ ] All time damage ?
+- [ ] Add unit tests
 
 # Precisions
 

@@ -9,17 +9,16 @@ This project depends on:
 
 ## Build instructions
 
-Create a `build` folder under the `src` directory:
+Go to the root directory then run with the correct parameters depending on you compiler:
 
 ```
-mkdir src/build
-cmake -DMSVC=true/false ..
-cmake --build .
+cmake -DMSVC={$MSVC:-true} -DTEST={$GTEST:-OFF} -S . -B build -G "Visual Studio 16 2019" -A Win32
+cmake --build build
 ```
 
 ## How to use
 
-To use, run the executable file that is produced by the compilation under the `src/build/Debug` folder.
+To use, run the executable file that is produced by the compilation under the `build/src/Debug` folder.
 
 ## Currently implemented features
 

@@ -15,6 +15,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(
     $(CMAKE_SOURCE_DIR)
     ../include/
+    ../vendor/imgui/
+    ../vendor/imgui/backends/
 )
 
 #################
@@ -30,6 +32,7 @@ set(SOURCE_FILES
     "packets/packet.cpp"
     "threads/dps_meter.cpp"
     "threads/packet_sniffer.cpp"
+    "gui/gui.cpp"
 )
 
 #####################
@@ -46,7 +49,12 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+if (TEST)
+    SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+else()
+    add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+endif()
 
 add_compile_definitions(TINS_STATIC)
 
@@ -61,5 +69,8 @@ target_link_directories(
 
 target_link_libraries(
     ${PROJECT_NAME}
+    # Libtins linkage
     Ws2_32 Iphlpapi wpcap tins
+    # IMGUI linkage 
+    D3d12 DXGI IMGUI
 )

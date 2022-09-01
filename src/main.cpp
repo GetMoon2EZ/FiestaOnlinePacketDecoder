@@ -15,6 +15,7 @@
 #include "fopd/fopd_packet.h"
 #include "fopd/fopd_packet_entity_stats.h"
 #include "fopd/fopd_packet_damage.h"
+#include "fopd/gui.h"
 
 
 using namespace std;
@@ -28,6 +29,8 @@ int main() {
     thread t1(dps_thread, &dmg_q, DPS_UPDATE_TIME_MS);
     thread t2(sniffer_thread, &dmg_q);
 
+    // Run the UI in the main thread
+    run_gui();
     while (1) { }
 
     cout << "Done." << std::endl;
