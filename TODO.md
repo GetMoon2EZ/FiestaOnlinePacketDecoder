@@ -4,6 +4,8 @@
 - [ ] Find a way to distinguish damage done and damage received
 - [ ] All time damage ?
 - [ ] Add unit tests
+- [ ] Customize default GUI
+- [ ] Make IMGUI a submodule
 
 # Precisions
 
