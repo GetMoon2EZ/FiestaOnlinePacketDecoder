@@ -15,7 +15,7 @@ using namespace std;
 
 static const int get_dmg_queue_sum(queue<FiestaOnlinePacketDamage> q)
 {
-    // It is VERY unlikely that the DPS of one player exeeds INT_MAX
+    // It is VERY unlikely that the DPS of one player exceeds INT_MAX
     int sum = 0;
     while (!q.empty()) {
         sum += q.front().getDamageValue();
@@ -48,7 +48,7 @@ void dps_thread(fopd_damage_queue* const dmg_q, const int update_delta_ms)
                 dmg_q->q.pop();
             }
             // The dps (damage mean) is computed from the start at each iteration
-            // A faster approach would be to maintain the queue sum, substract expired elements then add the new elements
+            // A faster approach would be to maintain the queue sum, subtract expired elements then add the new elements
         }
         const int dps = static_cast<int>(get_dmg_queue_sum(dmg_q->q));
         max_dps = max(max_dps, dps);
