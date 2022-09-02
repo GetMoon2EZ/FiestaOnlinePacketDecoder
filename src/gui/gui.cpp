@@ -8,6 +8,8 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
+#include "fopd/fopd_data.h"
+
 void build_gui(void)
 {
     // Uses ImGUI to display some information
@@ -15,19 +17,18 @@ void build_gui(void)
     // The singleton can be polled using one of its methods
     // Making it thread safe should not be too hard :)
 
-    int ping = 0;
-    int max_dps = 0, dps = 0;
+    FOPDData *data = FOPDData::getInstance();
 
     ImGui::Begin("Debug info");
 
     // Display frame rate
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Text("Ping: %d ms", ping);
+    ImGui::Text("Ping: %d ms", data->getPing());
     ImGui::End();
 
     ImGui::Begin("DPS meter");
-    ImGui::Text("Max DPS    : %d", max_dps);
-    ImGui::Text("Current DPS: %d", dps);
+    ImGui::Text("Max DPS    : %d", data->getMaxDPS());
+    ImGui::Text("Current DPS: %d", data->getDPS());
     ImGui::End();
 
 }

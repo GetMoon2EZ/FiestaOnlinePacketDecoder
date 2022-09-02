@@ -9,11 +9,12 @@
 #include <utility>
 
 #include "fopd/fopd_packet_damage.h"
+#include "fopd/fopd_data.h"
 
 
 using namespace std;
 
-static const int get_dmg_queue_sum(queue<FiestaOnlinePacketDamage> q)
+static int get_dmg_queue_sum(queue<FiestaOnlinePacketDamage> q)
 {
     // It is VERY unlikely that the DPS of one player exceeds INT_MAX
     int sum = 0;
@@ -24,7 +25,7 @@ static const int get_dmg_queue_sum(queue<FiestaOnlinePacketDamage> q)
     return sum;
 }
 
-void print_dps(const int dps, const int max_dps)
+static void print_dps(const int dps, const int max_dps)
 {
     // Cast to int for readability
     cout << "Current player DPS:   " << dps << endl;
@@ -34,7 +35,7 @@ void print_dps(const int dps, const int max_dps)
 // queue is shared between producer thread and consumer thread
 void dps_thread(fopd_damage_queue* const dmg_q, const int update_delta_ms)
 {
-    int max_dps = 0;
+    FOPDData *data = FOPDData::getInstance();
     while (true) {
         // Lock the mutex
         dmg_q->lock.lock();
@@ -50,9 +51,11 @@ void dps_thread(fopd_damage_queue* const dmg_q, const int update_delta_ms)
             // The dps (damage mean) is computed from the start at each iteration
             // A faster approach would be to maintain the queue sum, subtract expired elements then add the new elements
         }
-        const int dps = static_cast<int>(get_dmg_queue_sum(dmg_q->q));
-        max_dps = max(max_dps, dps);
-        print_dps(dps, max_dps);
+
+        // Update dps data
+        data->setDPS(static_cast<uint32_t>(get_dmg_queue_sum(dmg_q->q)));
+        // Debug
+        print_dps(data->getDPS(), data->getMaxDPS());
 
         // Queue ownership not needed anymore
         dmg_q->lock.unlock();
