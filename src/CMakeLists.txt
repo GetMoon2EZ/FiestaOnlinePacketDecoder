@@ -59,7 +59,7 @@ if (TEST)
     SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 else()
-    add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+    add_executable(${PROJECT_NAME} WIN32 ${SOURCE_FILES})
 endif()
 
 add_compile_definitions(TINS_STATIC)

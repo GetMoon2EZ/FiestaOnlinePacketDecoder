@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <tins/tins.h>
+#include <windows.h>
 
 #include "fopd/dps_meter.h"
 #include "fopd/packet_sniffer.h"
@@ -12,7 +13,12 @@
 
 using namespace std;
 
-int main() {
+int WINAPI WinMain(
+  HINSTANCE hInstance,
+  HINSTANCE hPrevInstance,
+  LPSTR     lpCmdLine,
+  int       nShowCmd)
+{
     const uint32_t DPS_UPDATE_TIME_MS = 100;
     const uint32_t PING_UPDATE_TIME_MS = 1000;
 
