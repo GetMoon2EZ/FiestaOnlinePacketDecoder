@@ -33,7 +33,7 @@ static void print_dps(const int dps, const int max_dps)
 }
 
 // queue is shared between producer thread and consumer thread
-void dps_thread(fopd_damage_queue* const dmg_q, const int update_delta_ms)
+void dps_thread(fopd_damage_queue* const dmg_q, const uint32_t update_delta_ms)
 {
     FOPDData *data = FOPDData::getInstance();
     while (true) {
