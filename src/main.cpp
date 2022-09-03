@@ -1,22 +1,13 @@
 #include <iostream>
-#include <iomanip>
+#include <cstdint>
 #include <thread>
-
-#include <utility>
-#include <vector>
-#include <queue>
 
 #include <tins/tins.h>
 
 #include "fopd/dps_meter.h"
 #include "fopd/packet_sniffer.h"
-#include "fopd/fopd_types.h"
-#include "fopd/fopd_utils.h"
-#include "fopd/fopd_packet.h"
-#include "fopd/fopd_packet_entity_stats.h"
-#include "fopd/fopd_packet_damage.h"
-#include "fopd/gui.h"
 #include "fopd/ping.h"
+#include "fopd/gui.h"
 
 
 using namespace std;
