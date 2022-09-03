@@ -36,6 +36,7 @@ set(SOURCE_FILES
 
     "threads/dps_meter.cpp"
     "threads/packet_sniffer.cpp"
+    "threads/ping.cpp"
 
     "gui/gui.cpp"
 )
