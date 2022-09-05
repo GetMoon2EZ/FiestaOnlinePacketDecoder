@@ -14,6 +14,9 @@ public:
     uint32_t getMaxDPS(void);
     uint32_t getPing(void);
 
+    void operator=(const FOPDData &) = delete;
+    FOPDData(FOPDData &other) = delete;
+
 private:
     std::mutex lock;
 
