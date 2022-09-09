@@ -26,7 +26,6 @@ static HANDLE m_hChildStd_OUT_Wr = NULL;
 static HANDLE m_hreadDataFromExtProgram = NULL;
 static uint32_t last_ping = PING_ERROR;
 
-static const uint32_t get_ping_ms(const string& server_addr);
 static HRESULT RunExternalProgram(const string& externalProgram, const string& arguments);
 static DWORD __stdcall readDataFromPingProgram(void *argh);
 static void parsePingOutput(const CHAR *buffer);
@@ -46,21 +45,6 @@ void ping_thread(uint32_t update_delta_ms)
     }
 }
 
-static const uint32_t get_ping_ms(const string& server_addr)
-{
-    // char buffer[1024] = { 0 };
-    // char cmd[256] = { 0 };
-    uint32_t ping = PING_ERROR;
-
-    // Run the ping command as an external program
-    if (RunExternalProgram("ping", server_addr + " -n 1") != S_OK) {
-        cerr << "[ERROR] Unable to run external program" << endl;
-        return PING_ERROR; 
-    }
-
-    return ping;
-}
-
 static HRESULT RunExternalProgram(const string& externalProgram, const string& arguments)
 {
     STARTUPINFO si;
@@ -73,11 +57,12 @@ static HRESULT RunExternalProgram(const string& externalProgram, const string& a
     saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = NULL;
 
-    // Create a pipe for the child process's STDOUT. 
-
-    if (!CreatePipe(&m_hChildStd_OUT_Rd, &m_hChildStd_OUT_Wr, &saAttr, 0)) {
-        // log error
-        return HRESULT_FROM_WIN32(GetLastError());
+    // Create a pipe for the child process's STDOUT.
+    if (!m_hChildStd_OUT_Rd || !m_hChildStd_OUT_Wr) {
+        if (!CreatePipe(&m_hChildStd_OUT_Rd, &m_hChildStd_OUT_Wr, &saAttr, 0)) {
+            // log error
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
     }
 
     // Ensure the read handle to the pipe for STDOUT is not inherited.
@@ -112,7 +97,9 @@ static HRESULT RunExternalProgram(const string& externalProgram, const string& a
         ) {
         return HRESULT_FROM_WIN32(GetLastError());
     }
-    m_hreadDataFromExtProgram  = CreateThread(0, 0, readDataFromPingProgram, NULL, 0, NULL);
+    // Start reader thread if not currently running
+    if (!m_hreadDataFromExtProgram || WaitForSingleObject(m_hreadDataFromExtProgram, 0) == WAIT_OBJECT_0)
+        m_hreadDataFromExtProgram  = CreateThread(0, 0, readDataFromPingProgram, NULL, 0, NULL);
     return S_OK;
 }
 
@@ -122,21 +109,26 @@ static DWORD __stdcall readDataFromPingProgram(void *argh)
     CHAR chBuf[BUFSIZE] = { 0 };
     BOOL bSuccess = FALSE;
 
-    for (;;) {
+    while (true) {
         bSuccess = ReadFile(m_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL);
-        if (!bSuccess || dwRead == 0)
-            continue;
+        if (!bSuccess)
+            break;
+
+        if (dwRead == 0)
+            break;
 
         // Parse ping output
         parsePingOutput(chBuf);
 
         // Reset buffer
         ZeroMemory(chBuf, dwRead);
-        if (!bSuccess)
-            break;
     }
-    // CloseHandle(m_hChildStd_OUT_Rd);
-    // CloseHandle(m_hChildStd_OUT_Wr);
+
+    CloseHandle(m_hChildStd_OUT_Rd);
+    CloseHandle(m_hChildStd_OUT_Wr);
+    m_hChildStd_OUT_Rd = NULL;
+    m_hChildStd_OUT_Wr = NULL;
+
     return 0;
 }
 
