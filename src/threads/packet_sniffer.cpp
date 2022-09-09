@@ -44,9 +44,8 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
                 case FOPD_DAMAGE_PACKET:
                 {
                     FiestaOnlinePacketDamage damage_pkt(fopd_pkts[i].second);
-                    dmg_q->lock.lock();
+                    std::lock_guard<std::mutex> lk(dmg_q->lock);
                     dmg_q->q.push(damage_pkt);
-                    dmg_q->lock.unlock();
                     // std::cout << damage_pkt << std::endl;
                 }
                 break;
