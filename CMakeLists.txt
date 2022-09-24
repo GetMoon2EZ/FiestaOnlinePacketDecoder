@@ -8,6 +8,9 @@ project(${PROJECT_NAME} VERSION 1.0.0 DESCRIPTION "DPS meter for Fiesta Online")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Executable output path
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 if (TEST)
     enable_testing()
 endif()
