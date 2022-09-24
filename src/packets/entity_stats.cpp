@@ -14,7 +14,7 @@ fopd_status_t FiestaOnlinePacketEntityStats::parsePayload(void) {
     // std::cout << std::dec << std::endl;
 
     if (this->payload_len < FOPD_ENTITY_CLICK_PACKET_PAYLOAD_MIN_LEN) {
-        std::cerr << "[ERROR] Cannot parse given data" << std::endl;
+        // std::cerr << "[ERROR] Cannot parse given data" << std::endl;
         return FOPD_ERROR;
     }
     // Parse current health

@@ -15,7 +15,7 @@ fopd_status_t FiestaOnlinePacketDamage::parsePayload(void)
         case FOPD_AA_DAMAGE_PACKET_HEADER_B0:
         {
             if (this->payload_len < FOPD_AA_DAMAGE_PACKET_PAYLOAD_MIN_LEN) {
-                cerr << "[ERROR] Cannot parse given data" << endl;
+                // cerr << "[ERROR] Cannot parse given data" << endl;
                 return FOPD_ERROR;
             }
             this->damage_value = little_endian_byte_array_to_uint32(this->payload + AA_DAMAGE_VALUE_OFFSET);
@@ -26,7 +26,7 @@ fopd_status_t FiestaOnlinePacketDamage::parsePayload(void)
         case FOPD_SPELL_DAMAGE_PACKET_HEADER_B0:
         {
             if (this->payload_len < FOPD_SPELL_DAMAGE_PACKET_PAYLOAD_MIN_LEN) {
-                cerr << "[ERROR] Cannot parse given data" << endl;
+                // cerr << "[ERROR] Cannot parse given data" << endl;
                 return FOPD_ERROR;
             }
             this->damage_value = little_endian_byte_array_to_uint32(this->payload + SPELL_DAMAGE_VALUE_OFFSET);

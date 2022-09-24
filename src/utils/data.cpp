@@ -26,6 +26,12 @@ void FOPDData::setPing(uint32_t ping)
     this->ping = ping;
 }
 
+void FOPDData::setTargetRemainingHealth(uint32_t target_health)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    this->target_remaining_health = target_health;
+}
+
 uint32_t FOPDData::getDPS(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
@@ -42,4 +48,10 @@ uint32_t FOPDData::getPing(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     return this->ping;
+}
+
+uint32_t FOPDData::getTargetRemainingHealth(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    return this->target_remaining_health;
 }

@@ -45,7 +45,7 @@ void dps_thread(fopd_damage_queue* const dmg_q, const uint32_t update_delta_ms)
         if (!dmg_q->q.empty()) {
             // Remove expired packets
             while (!dmg_q->q.empty() && dmg_q->q.front().getTimestamp() <= last_sec) {
-                cout << "Popping: " << dmg_q->q.front().getDamageValue() << endl;
+                // cout << "Popping: " << dmg_q->q.front().getDamageValue() << endl;
                 dmg_q->q.pop();
             }
             // The dps (damage mean) is computed from the start at each iteration
@@ -55,7 +55,7 @@ void dps_thread(fopd_damage_queue* const dmg_q, const uint32_t update_delta_ms)
         // Update dps data
         data->setDPS(static_cast<uint32_t>(get_dmg_queue_sum(dmg_q->q)));
         // Debug
-        print_dps(data->getDPS(), data->getMaxDPS());
+        // print_dps(data->getDPS(), data->getMaxDPS());
 
         // Queue ownership not needed anymore
         dmg_q->lock.unlock();

@@ -14,11 +14,13 @@
 #include "fopd/fopd_packet_damage.h"
 #include "fopd/fopd_packet_entity_stats.h"
 #include "fopd/dps_meter.h"
+#include "fopd/fopd_data.h"
 
 using namespace Tins;
 
 bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
 {
+    FOPDData *fopd_data = FOPDData::getInstance();
     try {
         // Extract raw TCP data from the packet
         const RawPDU &raw = pkt.rfind_pdu<RawPDU>();
@@ -44,6 +46,8 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
                 case FOPD_DAMAGE_PACKET:
                 {
                     FiestaOnlinePacketDamage damage_pkt(fopd_pkts[i].second);
+                    std::cout << "Target remaining health : " << static_cast<int>(damage_pkt.getTargetRemainingHealth()) << std::endl;
+                    fopd_data->setTargetRemainingHealth(damage_pkt.getTargetRemainingHealth());
                     std::lock_guard<std::mutex> lk(dmg_q->lock);
                     dmg_q->q.push(damage_pkt);
                     // std::cout << damage_pkt << std::endl;

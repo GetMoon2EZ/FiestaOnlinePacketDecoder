@@ -38,7 +38,7 @@ void ping_thread(uint32_t update_delta_ms)
         // Run the ping command as an external program
         // This should update last_ping to the ping output
         RunExternalProgram("ping", FIESTA_ONLINE_SERVER_ADDRESS + " -n 1");
-        cout << "[DEBUG] ping: " << static_cast<int>(last_ping) << " ms" << endl;
+        // cout << "[DEBUG] ping: " << static_cast<int>(last_ping) << " ms" << endl;
         data->setPing(last_ping);
         // Pause current thread
         this_thread::sleep_for(chrono::milliseconds(update_delta_ms));
@@ -136,14 +136,14 @@ static void parsePingOutput(const CHAR *buffer)
 {
     const char *p = strrchr(buffer, ' ');
     if (p == nullptr) {
-        cerr << "[ERROR] ping: strrchr returned NULL" << endl;
+        // cerr << "[ERROR] ping: strrchr returned NULL" << endl;
         last_ping = PING_ERROR;
         return;
     }
 
     if (*(p - 1) != '=') {
-        cout << "[ERROR] buffer: " << buffer << endl;
-        cerr << "[ERROR] ping: unreachable host" << endl;
+        // cout << "[ERROR] buffer: " << buffer << endl;
+        // cerr << "[ERROR] ping: unreachable host" << endl;
         last_ping = PING_ERROR;
         return;
     }
