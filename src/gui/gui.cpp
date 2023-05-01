@@ -26,12 +26,12 @@ void build_gui(void)
     ImGui::Text("Ping: %d ms", data->getPing());
     ImGui::End();
 
+    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("DPS meter");
     ImGui::Text("Max DPS    : %d", data->getMaxDPS());
     ImGui::Text("Current DPS: %d", data->getDPS());
     ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
     ImGui::End();
-
 }
 
 // Code below comes from Dear ImGui examples

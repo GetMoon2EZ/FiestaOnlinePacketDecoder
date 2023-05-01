@@ -9,7 +9,7 @@
 fopd_status_t FiestaOnlinePacketEntityStats::parsePayload(void) {
     // Debug
     // for (int i = 0; i < payload_len; i++) {
-    //     std::cout << std::hex << static_cast<int>(payload[i]) << " "; 
+    //     std::cout << std::hex << static_cast<int>(payload[i]) << " ";
     // }
     // std::cout << std::dec << std::endl;
 

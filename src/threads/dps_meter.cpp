@@ -59,7 +59,7 @@ void dps_thread(fopd_damage_queue* const dmg_q, const uint32_t update_delta_ms)
 
         // Queue ownership not needed anymore
         dmg_q->lock.unlock();
-        
+
         // Pause current thread
         this_thread::sleep_for(chrono::milliseconds(update_delta_ms));
     }

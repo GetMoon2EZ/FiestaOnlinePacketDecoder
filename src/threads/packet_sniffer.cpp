@@ -28,7 +28,7 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
         uint8_t *data = payload.data();
         uint32_t data_len = raw.payload_size();
 
-        // Return vector<pair<fopd_packet_type_t, uint8_t *> 
+        // Return vector<pair<fopd_packet_type_t, uint8_t *>
         std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> fopd_pkts = getPacketsFromRawTCP(data, data_len);
 
         // For each packet, initialize the right type then print it
