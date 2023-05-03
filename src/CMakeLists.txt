@@ -17,10 +17,12 @@ include_directories(
     ../include/
     ../vendor/imgui/
     ../vendor/imgui/backends/
+    ../vendor/libtins/include/
+    ../vendor/WpdPack/Include/
 )
 
 #################
-# C and H files # 
+# C and H files #
 #################
 
 set(SOURCE_FILES
@@ -82,6 +84,6 @@ target_link_libraries(
     ${PROJECT_NAME}
     # Libtins linkage
     Ws2_32 Iphlpapi wpcap tins
-    # IMGUI linkage 
+    # IMGUI linkage
     D3d12 DXGI IMGUI
 )

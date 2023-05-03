@@ -12,7 +12,7 @@ This project depends on:
 Go to the root directory then run with the correct parameters depending on you compiler:
 
 ```
-cmake -DMSVC={$MSVC:-true} -DTEST={$GTEST:-OFF} -S . -B build -G "Visual Studio 16 2019" -A Win32
+cmake -DMSVC=true -S . -B build -G "Visual Studio 16 2019" -A x64
 cmake --build build
 ```
 
