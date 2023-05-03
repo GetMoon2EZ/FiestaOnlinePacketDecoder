@@ -6,9 +6,14 @@
 - [ ] Add unit tests
 - [ ] Customize default GUI
 - [ ] Make IMGUI a submodule
+- [ ] Fix important memory leak (crash after a few minutes)
+- [ ] Improve build system
+- [ ] Fix vendor directory (missing dependencies not building with the project)
+- [ ] Add server selection (only Cypian is supported)
 
 # Precisions
 
 As of right now, the DPS is calculated using every damage packet that is received by the client. Some of these packets represent damage done by an enemy to the player. Those packets should somehow be distinguished from the player's emitted damage. This can probably be done in one of the following ways:
-* There might be some kind of information in the damage packet which indicates the target
-* Capture and reverse engineer the client request
+
+- There might be some kind of information in the damage packet which indicates the target
+- Capture and reverse engineer the client request
