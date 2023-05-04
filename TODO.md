@@ -6,10 +6,11 @@
 - [ ] Add unit tests
 - [ ] Customize default GUI
 - [ ] Make IMGUI a submodule
-- [ ] Fix important memory leak (crash after a few minutes)
+- [x] Fix important memory leak (crash after a few minutes)
 - [ ] Improve build system
 - [ ] Fix vendor directory (missing dependencies not building with the project)
 - [ ] Add server selection (only Cypian is supported)
+- [ ] Plot damage over time
 
 # Precisions
 

@@ -53,7 +53,11 @@ vector<pair<fopd_packet_type_t, vector<uint8_t>>> getPacketsFromRawTCP(uint8_t *
     uint32_t pos = 0;
 
     while (pos < tcp_data_len) {
-        uint8_t payload_len = tcp_data[pos + FOPD_PACKET_PAYLOAD_LEN_OFFSET] + 1;
+        uint16_t payload_len = ((uint16_t) tcp_data[pos + FOPD_PACKET_PAYLOAD_LEN_OFFSET]) + 1;
+
+        if (payload_len == 0 || pos + payload_len > tcp_data_len) {
+            break;
+        }
 
         std::vector<uint8_t> payload(&tcp_data[pos], &tcp_data[pos + payload_len]);
 
