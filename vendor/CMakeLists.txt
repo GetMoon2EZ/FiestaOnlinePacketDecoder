@@ -16,6 +16,7 @@ target_sources(
     ${PROJECT_NAME}
     PUBLIC
     ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
@@ -26,6 +27,25 @@ target_sources(
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_IMGUI)
 target_link_libraries(${PROJECT_NAME} D3d12 DXGI)
+
+##########
+# ImPlot #
+##########
+
+set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/implot)
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    ${IMPLOT_DIR}
+)
+
+target_sources(
+    ${PROJECT_NAME}
+    PUBLIC
+    ${IMPLOT_DIR}/implot.cpp
+    ${IMPLOT_DIR}/implot_demo.cpp
+    ${IMPLOT_DIR}/implot_items.cpp
+)
 
 ###########
 # WinPcap #

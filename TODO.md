@@ -5,10 +5,10 @@
 - [ ] All time damage ?
 - [ ] Add unit tests
 - [ ] Customize default GUI
-- [ ] Make IMGUI a submodule
+- [x] Make IMGUI a submodule
 - [x] Fix important memory leak (crash after a few minutes)
-- [ ] Improve build system
-- [ ] Fix vendor directory (missing dependencies not building with the project)
+- [x] Improve build system
+- [x] Fix vendor directory (missing dependencies not building with the project)
 - [ ] Add server selection (only Cypian is supported)
 - [ ] Plot damage over time
 

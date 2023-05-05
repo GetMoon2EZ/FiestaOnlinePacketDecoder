@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "implot.h"
 
 #include "fopd/fopd_data.h"
 
@@ -32,6 +33,31 @@ void build_gui(void)
     ImGui::Text("Current DPS: %d", data->getDPS());
     ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
     ImGui::End();
+
+    // From implot_demo.cpp
+    ImGui::ShowFontSelector("Font");
+    ImGui::ShowStyleSelector("ImGui Style");
+    ImPlot::ShowStyleSelector("ImPlot Style");
+    ImPlot::ShowColormapSelector("ImPlot Colormap");
+    ImPlot::ShowInputMapSelector("Input Map");
+    ImGui::Separator();
+    ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
+    ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
+    ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
+    ImGui::Separator();
+    if (ImPlot::BeginPlot("Preview")) {
+        static double now = (double)time(nullptr);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+        ImPlot::SetupAxisLimits(ImAxis_X1, now, now + 24*3600);
+        for (int i = 0; i < 10; ++i) {
+            double x[2] = {now, now + 24*3600};
+            double y[2] = {0,i/9.0};
+            ImGui::PushID(i);
+            ImPlot::PlotLine("##Line",x,y,2);
+            ImGui::PopID();
+        }
+        ImPlot::EndPlot();
+    }
 }
 
 // Code below comes from Dear ImGui examples
@@ -104,6 +130,7 @@ int run_gui(void)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -227,6 +254,7 @@ int run_gui(void)
     // Cleanup
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     CleanupDeviceD3D();
