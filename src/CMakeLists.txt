@@ -21,14 +21,3 @@ target_sources(
 
     "gui/gui.cpp"
 )
-
-target_compile_definitions(${PROJECT_NAME} PUBLIC TINS_STATIC)
-
-target_link_libraries(
-    ${PROJECT_NAME}
-    # Libtins linkage
-    Ws2_32 Iphlpapi wpcap tins
-    # IMGUI linkage
-    D3d12 DXGI
-    IMGUI
-)

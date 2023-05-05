@@ -4,15 +4,28 @@ include(ExternalProject)
 # ImGUI #
 #########
 
-# Builds itself
-add_subdirectory(imgui)
-
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/imgui
-    ${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
 )
+
+target_sources(
+    ${PROJECT_NAME}
+    PUBLIC
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+
+    ${IMGUI_DIR}/backends/imgui_impl_dx12.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_win32.cpp
+)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_IMGUI)
+target_link_libraries(${PROJECT_NAME} D3d12 DXGI)
 
 ###########
 # WinPcap #
@@ -55,8 +68,5 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/libtins/include
 )
 
-# target_include_directories(
-#     ${PROJECT_NAME}
-#     PUBLIC
-#     libtins/include
-# )
+target_compile_definitions(${PROJECT_NAME} PUBLIC TINS_STATIC)
+target_link_libraries(${PROJECT_NAME} Ws2_32 Iphlpapi wpcap tins)
