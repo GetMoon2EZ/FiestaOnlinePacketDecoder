@@ -3,6 +3,10 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <tchar.h>
+#include <vector>
+#include <time.h>
+#include <stdint.h>
+#include <iostream>
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -10,6 +14,63 @@
 #include "implot.h"
 
 #include "fopd/fopd_data.h"
+
+struct Vector2d {
+    std::vector<double> x;
+    std::vector<double> y;
+};
+
+#define PLOT_POLL_TIME      15
+
+static double start = 0;
+static std::vector<double> dps;
+static std::vector<double> avg_dps;
+static std::vector<double> rolling_avg_dps;
+static std::vector<double> time_axis;
+static int dps_plot_timeout = 0;
+
+void Demo_LinePlots() {
+    static float xs1[1001], ys1[1001];
+    for (int i = 0; i < 1001; ++i) {
+        xs1[i] = i * 0.001f;
+        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
+    }
+    if (ImPlot::BeginPlot("Line Plots")) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
+        ImPlot::EndPlot();
+    }
+}
+
+static void plot_dps_over_time(FOPDData *data)
+{
+    double now = (double) time(NULL);
+
+    if (dps_plot_timeout == 0) {
+        dps.push_back((double) data->getDPS());
+        avg_dps.push_back(data->getDPSAverage());
+        rolling_avg_dps.push_back(data->getDPSRollingAverage());
+        time_axis.push_back(now);
+    }
+
+    if (ImPlot::BeginPlot("DPS over time")) {
+        double dps_axis_limit = (double) data->getMaxDPS() ? data->getMaxDPS() * 1.1 : 1000;
+        ImPlot::SetupAxis(ImAxis_X1, "Time");
+        ImPlot::SetupAxis(ImAxis_Y1, "DPS");
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+        ImPlot::SetupAxisLimits(ImAxis_X1, start, now, ImPlotCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, dps_axis_limit, ImPlotCond_Always);
+        ImPlot::SetupFinish();
+
+        ImPlot::PlotLine("##dps", &time_axis[0], &dps[0], static_cast<int>(dps.size()));
+        ImPlot::PlotLine("##average_dps", &time_axis[0], &avg_dps[0], static_cast<int>(avg_dps.size()));
+        ImPlot::PlotLine("##rolling_average_dps", &time_axis[0], &rolling_avg_dps[0], static_cast<int>(rolling_avg_dps.size()));
+
+        ImPlot::EndPlot();
+    }
+    dps_plot_timeout = (dps_plot_timeout + 1) % PLOT_POLL_TIME;
+
+}
 
 void build_gui(void)
 {
@@ -19,7 +80,6 @@ void build_gui(void)
     // Making it thread safe should not be too hard :)
 
     FOPDData *data = FOPDData::getInstance();
-
     ImGui::Begin("Debug info");
 
     // Display frame rate
@@ -34,30 +94,8 @@ void build_gui(void)
     ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
     ImGui::End();
 
-    // From implot_demo.cpp
-    ImGui::ShowFontSelector("Font");
-    ImGui::ShowStyleSelector("ImGui Style");
-    ImPlot::ShowStyleSelector("ImPlot Style");
-    ImPlot::ShowColormapSelector("ImPlot Colormap");
-    ImPlot::ShowInputMapSelector("Input Map");
-    ImGui::Separator();
-    ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
-    ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
-    ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
-    ImGui::Separator();
-    if (ImPlot::BeginPlot("Preview")) {
-        static double now = (double)time(nullptr);
-        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
-        ImPlot::SetupAxisLimits(ImAxis_X1, now, now + 24*3600);
-        for (int i = 0; i < 10; ++i) {
-            double x[2] = {now, now + 24*3600};
-            double y[2] = {0,i/9.0};
-            ImGui::PushID(i);
-            ImPlot::PlotLine("##Line",x,y,2);
-            ImGui::PopID();
-        }
-        ImPlot::EndPlot();
-    }
+    // Demo_LinePlots();
+    plot_dps_over_time(data);
 }
 
 // Code below comes from Dear ImGui examples
@@ -178,6 +216,7 @@ int run_gui(void)
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+    start = (double) time(NULL);
     // Main loop
     bool done = false;
     while (!done)
