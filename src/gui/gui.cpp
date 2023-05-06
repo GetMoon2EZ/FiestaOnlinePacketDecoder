@@ -52,11 +52,13 @@ static void plot_dps_over_time(FOPDData *data)
         rolling_avg_dps.push_back(data->getDPSRollingAverage());
         time_axis.push_back(now);
     }
+    dps_plot_timeout = (dps_plot_timeout + 1) % PLOT_POLL_TIME;
 
-    if (ImPlot::BeginPlot("DPS over time")) {
+    ImGui::Begin("Plots");
+    if (ImPlot::BeginPlot("Damage Graph")) {
         double dps_axis_limit = (double) data->getMaxDPS() ? data->getMaxDPS() * 1.1 : 1000;
         ImPlot::SetupAxis(ImAxis_X1, "Time");
-        ImPlot::SetupAxis(ImAxis_Y1, "DPS");
+        ImPlot::SetupAxis(ImAxis_Y1, "Damage");
         ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         ImPlot::SetupAxisLimits(ImAxis_X1, start, now, ImPlotCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1, 0, dps_axis_limit, ImPlotCond_Always);
@@ -68,7 +70,7 @@ static void plot_dps_over_time(FOPDData *data)
 
         ImPlot::EndPlot();
     }
-    dps_plot_timeout = (dps_plot_timeout + 1) % PLOT_POLL_TIME;
+    ImGui::End();
 
 }
 
@@ -89,9 +91,11 @@ void build_gui(void)
 
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("DPS meter");
+    ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
+    ImGui::Text("Max dmg    : %d", data->getMaxDmg());
     ImGui::Text("Max DPS    : %d", data->getMaxDPS());
     ImGui::Text("Current DPS: %d", data->getDPS());
-    ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
+    ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
     ImGui::End();
 
     // Demo_LinePlots();

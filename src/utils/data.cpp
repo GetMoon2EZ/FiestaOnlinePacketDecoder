@@ -36,6 +36,11 @@ void FOPDData::setTargetRemainingHealth(uint32_t target_health)
     this->target_remaining_health = target_health;
 }
 
+void FOPDData::trySetMaxDmg(uint32_t damage)
+{
+    this->max_dmg = std::max(this->max_dmg, damage);
+}
+
 uint32_t FOPDData::getDPS(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
@@ -46,6 +51,12 @@ uint32_t FOPDData::getMaxDPS(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     return this->max_dps;
+}
+
+uint32_t FOPDData::getMaxDmg(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    return this->max_dmg;
 }
 
 uint32_t FOPDData::getPing(void)
