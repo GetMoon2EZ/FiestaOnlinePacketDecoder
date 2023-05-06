@@ -16,8 +16,12 @@ void FOPDData::setDPS(uint32_t dps)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     this->dps = dps;
-    if (dps > this->max_dps)
+    if (dps > this->max_dps) {
         this->max_dps = dps;
+    }
+
+    this->updateDPSAverage();
+    this->updateDPSRollingAverage();
 }
 
 void FOPDData::setPing(uint32_t ping)
@@ -54,4 +58,32 @@ uint32_t FOPDData::getTargetRemainingHealth(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     return this->target_remaining_health;
+}
+
+void FOPDData::updateDPSAverage(void)
+{
+    // a = a + ( v - a ) / (n + 1)
+    this->average_dps = this->average_dps + ((double) this->dps - this->average_dps) / (double) (++this->average_dps_n);
+}
+
+double FOPDData::getDPSAverage(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    return this->average_dps;
+}
+
+double FOPDData::getDPSRollingAverage(void)
+{
+    double average = 0;
+    uint32_t n = 0;
+    for (uint32_t value: this->rolling_average_arr) {
+        average += ((double) value - average) / (double) ++n;
+    }
+    return average;
+}
+
+void FOPDData::updateDPSRollingAverage(void)
+{
+    this->rolling_average_arr[this->rolling_average_next] = this->dps;
+    this->rolling_average_next = (this->rolling_average_next + 1) % ROLLING_AVERAGE_POINT_COUNT;
 }
