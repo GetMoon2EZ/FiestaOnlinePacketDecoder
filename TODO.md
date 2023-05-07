@@ -1,18 +1,30 @@
 # TODO
 
-## Near future improvement checklist
+## Features
 
-- [ ] Find a way to distinguish damage done and damage received
-- [ ] Add unit tests
+- [x] Plot damage over time
+- [ ] Add server selection (only Cypian is supported)
 - [ ] Customize default GUI
-- [x] Make IMGUI a submodule
+- [ ] Add a reset button to reset plots/stats
+- [ ] Turn the app into an overlay
+
+## Bugs
+
 - [x] Fix important memory leak (crash after a few minutes)
+- [ ] Fix a bug where an incredibly high damage is recorded (1e+09)
+- [ ] Find a way to distinguish damage done and damage received
+
+## Build
+
+- [x] Make IMGUI a submodule
 - [x] Improve build system
 - [x] Fix vendor directory (missing dependencies not building with the project)
-- [ ] Add server selection (only Cypian is supported)
-- [ ] Plot damage over time
+- [ ] Package the app using CMake/CPack
 - [ ] Add support for x86 build
-- [ ] Turn the app into an overlay
+
+## MISC
+
+- [ ] Add unit tests
 
 ## Proposed features
 
