@@ -18,6 +18,8 @@
 
 using namespace Tins;
 
+static Sniffer configure_sniffer(size_t server);
+
 bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
 {
     FOPDData *fopd_data = FOPDData::getInstance();
@@ -69,24 +71,44 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
 
 void sniffer_thread(fopd_damage_queue *dmg_q)
 {
-    std::cout << "Server IP (default): " << FIESTA_ONLINE_SERVER_ADDRESS << std::endl;
+    FOPDData *data = FOPDData::getInstance();
+    size_t current_server = data->getServerIndex();
+    size_t old_server = current_server;
 
-    // Get network interface to tap
-    NetworkInterface iface = NetworkInterface::default_interface();
-    std::cout << "Interface name: " << iface.friendly_name().c_str() << std::endl;
+    std::cout << "Server IP (default): " << fo_servers[current_server].address << std::endl;
 
-    // Configure sniffer
-    SnifferConfiguration config;
-    config.set_promisc_mode(true);
-    // Only inbound packets
-    config.set_direction(PCAP_D_IN);
-    // Only packets from server
-    config.set_filter("ip src " + FIESTA_ONLINE_SERVER_ADDRESS);
-    config.set_snap_len(65535);
-
-    Sniffer sniffer(iface.name(), config);
+    Sniffer sniffer = configure_sniffer(current_server);
 
     while(1) {
-        sniffer.sniff_loop(std::bind(&process_packet, std::placeholders::_1, dmg_q));
+        current_server = data->getServerIndex();
+        if (current_server != old_server) {
+            std::cout << "[DEBUG] Changing capture filter" << std::endl;
+            sniffer = configure_sniffer(current_server);
+            old_server = current_server;
+        }
+        sniffer.sniff_loop(std::bind(&process_packet, std::placeholders::_1, dmg_q), 1);
     }
+}
+
+static Sniffer configure_sniffer(size_t server)
+{
+    char filter[256] = { 0 };
+    SnifferConfiguration config;
+    NetworkInterface iface = NetworkInterface::default_interface();
+
+    // Configure sniffer
+    config.set_promisc_mode(true);
+    snprintf(filter, sizeof(filter), "ip src %s", fo_servers[server].address);
+    config.set_filter(filter);
+
+    // Only inbound packets
+    config.set_direction(PCAP_D_IN);
+    config.set_snap_len(65535);
+    config.set_timeout(1000);
+
+    Sniffer sniffer = Sniffer(iface.name(), config);
+    /* Use pcap_dispatch so we can timeout if sniffing on the wrong address */
+    sniffer.set_pcap_sniffing_method(pcap_dispatch);
+
+    return sniffer;
 }

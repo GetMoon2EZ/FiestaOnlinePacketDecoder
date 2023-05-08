@@ -40,7 +40,7 @@ int WINAPI WinMain(
 
     thread t3(ping_thread, PING_UPDATE_TIME_MS);
     t3.detach();
-    
+
     // Run the UI in the main thread
     // Exit whenever the GUI returns (ie: window is closed)
     run_gui();

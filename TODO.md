@@ -3,7 +3,7 @@
 ## Features
 
 - [x] Plot damage over time
-- [ ] Add server selection (only Cypian is supported)
+- [x] Add server selection (only Cypian is supported)
 - [ ] Customize default GUI
 - [ ] Add a reset button to reset plots/stats
 - [ ] Turn the app into an overlay

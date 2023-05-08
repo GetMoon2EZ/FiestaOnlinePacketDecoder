@@ -33,11 +33,22 @@ static void parsePingOutput(const CHAR *buffer);
 void ping_thread(uint32_t update_delta_ms)
 {
     FOPDData *data = FOPDData::getInstance();
+    char ping_param[256] = { 0 };
+    size_t current_server = data->getServerIndex();
+    size_t old_server = current_server;
+
+    snprintf(ping_param, sizeof(ping_param), "%s -n 1", fo_servers[current_server].address);
 
     while (true) {
+        current_server = data->getServerIndex();
+        if (current_server != old_server) {
+            snprintf(ping_param, sizeof(ping_param), "%s -n 1", fo_servers[current_server].address);
+            old_server = current_server;
+        }
+
         // Run the ping command as an external program
         // This should update last_ping to the ping output
-        RunExternalProgram("ping", FIESTA_ONLINE_SERVER_ADDRESS + " -n 1");
+        RunExternalProgram("ping", ping_param);
         // cout << "[DEBUG] ping: " << static_cast<int>(last_ping) << " ms" << endl;
         data->setPing(last_ping);
         // Pause current thread

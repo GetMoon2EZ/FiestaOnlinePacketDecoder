@@ -15,6 +15,7 @@
 #include "implot.h"
 
 #include "fopd/fopd_data.h"
+#include "fopd/fopd_consts.h"
 #include "fopd/gui_helper.h"
 
 struct Vector2d {
@@ -54,6 +55,46 @@ static void show_debug_info(FOPDData *data)
     memory_display(mem_info.virtualMemUsed, used_mem);
     memory_display(mem_info.virtualMemUsedByProcess, used_mem_proc);
     ImGui::Text("Virtual Memory : %s / %s / %s", used_mem_proc, used_mem, total_mem);
+    ImGui::End();
+
+}
+
+static void show_parameters(FOPDData *data)
+{
+    /* Server selection */
+    ImGui::Begin("Parameters");
+
+    const char* server_names[SERVER_COUNT] = { 0 };
+    for (size_t i = 0; i < SERVER_COUNT; i++) {
+        server_names[i] = fo_servers[i].name;
+    }
+
+    size_t item_current = data->getServerIndex();
+    const char* combo_preview_value = server_names[item_current];  // Pass in the preview value visible before opening the combo (it could be anything)
+
+    if (ImGui::BeginCombo("Server", combo_preview_value, 0))
+    {
+        for (size_t n = 0; n < IM_ARRAYSIZE(server_names); n++)
+        {
+            const bool is_selected = (item_current == n);
+            if (ImGui::Selectable(server_names[n], is_selected)) {
+                if (!is_selected) {
+                    std::cout << "[DEBUG] Server value changed" << std::endl;
+                    /* Change sniffing filter */
+                }
+                item_current = n;
+            }
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        data->setServerIndex(item_current);
+        ImGui::EndCombo();
+    }
+
+    ImGui::Text("Server address: %s", fo_servers[item_current].address);
     ImGui::End();
 
 }
@@ -101,6 +142,11 @@ void build_gui(void)
 
     show_debug_info(data);
 
+    show_parameters(data);
+
+    // ImGui::ShowDemoWindow();
+
+    /* Damage statistics */
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("DPS meter");
     ImGui::Text("Target health: %d", data->getTargetRemainingHealth());

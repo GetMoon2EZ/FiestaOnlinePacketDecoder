@@ -13,6 +13,7 @@ public:
     void setPing(uint32_t ping);
     void setTargetRemainingHealth(uint32_t target_health);
     void trySetMaxDmg(uint32_t damage);
+    bool FOPDData::setServerIndex(size_t server_index);
 
     uint32_t getDPS(void);
     uint32_t getMaxDPS(void);
@@ -21,6 +22,7 @@ public:
     uint32_t getTargetRemainingHealth(void);
     double getDPSAverage(void);
     double getDPSRollingAverage(void);
+    size_t getServerIndex(void);
 
     void operator=(const FOPDData &) = delete;
     FOPDData(FOPDData &other) = delete;
@@ -38,6 +40,8 @@ private:
 
     uint32_t ping = 0;
     uint32_t target_remaining_health = 0;
+
+    size_t server_index = 0;
 
     FOPDData(void);
     void updateDPSAverage(void);

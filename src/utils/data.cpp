@@ -1,8 +1,18 @@
 #include "fopd/fopd_data.h"
+#include "fopd/fopd_consts.h"
+
 
 static FOPDData *instance = NULL;
 
+/****************/
+/* Constructors */
+/****************/
+
 FOPDData::FOPDData(void) {}
+
+/******************/
+/* Public Methods */
+/******************/
 
 FOPDData *FOPDData::getInstance(void)
 {
@@ -11,6 +21,10 @@ FOPDData *FOPDData::getInstance(void)
     }
     return instance;
 }
+
+/***********/
+/* Setters */
+/***********/
 
 void FOPDData::setDPS(uint32_t dps)
 {
@@ -36,10 +50,26 @@ void FOPDData::setTargetRemainingHealth(uint32_t target_health)
     this->target_remaining_health = target_health;
 }
 
+bool FOPDData::setServerIndex(size_t server_index)
+{
+    if (server_index >= SERVER_COUNT) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lk(this->lock);
+    this->server_index = server_index;
+    return true;
+}
+
 void FOPDData::trySetMaxDmg(uint32_t damage)
 {
+    std::lock_guard<std::mutex> lk(this->lock);
     this->max_dmg = std::max(this->max_dmg, damage);
 }
+
+/***********/
+/* Getters */
+/***********/
 
 uint32_t FOPDData::getDPS(void)
 {
@@ -71,11 +101,6 @@ uint32_t FOPDData::getTargetRemainingHealth(void)
     return this->target_remaining_health;
 }
 
-void FOPDData::updateDPSAverage(void)
-{
-    // a = a + ( v - a ) / (n + 1)
-    this->average_dps = this->average_dps + ((double) this->dps - this->average_dps) / (double) (++this->average_dps_n);
-}
 
 double FOPDData::getDPSAverage(void)
 {
@@ -85,12 +110,29 @@ double FOPDData::getDPSAverage(void)
 
 double FOPDData::getDPSRollingAverage(void)
 {
+    std::lock_guard<std::mutex> lk(this->lock);
     double average = 0;
     uint32_t n = 0;
     for (uint32_t value: this->rolling_average_arr) {
         average += ((double) value - average) / (double) ++n;
     }
     return average;
+}
+
+size_t FOPDData::getServerIndex(void)
+{
+    // std::lock_guard<std::mutex> lk(this->lock);
+    return this->server_index;
+}
+
+/*******************/
+/* Private Methods */
+/*******************/
+
+void FOPDData::updateDPSAverage(void)
+{
+    // a = a + ( v - a ) / (n + 1)
+    this->average_dps = this->average_dps + ((double) this->dps - this->average_dps) / (double) (++this->average_dps_n);
 }
 
 void FOPDData::updateDPSRollingAverage(void)

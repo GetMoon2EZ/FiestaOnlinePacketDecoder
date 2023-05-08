@@ -7,7 +7,6 @@ target_sources(
     PUBLIC
     "main.cpp"
 
-    "utils/consts.cpp"
     "utils/utils.cpp"
     "utils/data.cpp"
 
