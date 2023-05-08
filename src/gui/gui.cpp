@@ -103,6 +103,17 @@ static void plot_dps_over_time(FOPDData *data)
 {
     double now = (double) time(NULL);
 
+    ImGui::Begin("Plots");
+
+    if (ImGui::Button("Reset")) {
+        start = (double) time(NULL) - 1;
+        dps.clear();
+        avg_dps.clear();
+        rolling_avg_dps.clear();
+        time_axis.clear();
+        dps_plot_timeout = 0;
+    }
+
     if (dps_plot_timeout == 0) {
         dps.push_back((double) data->getDPS());
         avg_dps.push_back(data->getDPSAverage());
@@ -111,7 +122,6 @@ static void plot_dps_over_time(FOPDData *data)
     }
     dps_plot_timeout = (dps_plot_timeout + 1) % PLOT_POLL_TIME;
 
-    ImGui::Begin("Plots");
     if (ImPlot::BeginPlot("Damage Graph")) {
         double dps_axis_limit = (double) data->getMaxDPS() ? data->getMaxDPS() * 1.1 : 1000;
         ImPlot::SetupAxis(ImAxis_X1, "Time");
@@ -127,8 +137,8 @@ static void plot_dps_over_time(FOPDData *data)
 
         ImPlot::EndPlot();
     }
-    ImGui::End();
 
+    ImGui::End();
 }
 
 void build_gui(void)
@@ -156,7 +166,6 @@ void build_gui(void)
     ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
     ImGui::End();
 
-    // Demo_LinePlots();
     plot_dps_over_time(data);
 }
 

@@ -4,9 +4,13 @@
 
 - [x] Plot damage over time
 - [x] Add server selection (only Cypian is supported)
+- [x] Add a reset button to reset plots/stats
 - [ ] Customize default GUI
-- [ ] Add a reset button to reset plots/stats
 - [ ] Turn the app into an overlay
+- [ ] Save stats to a JSON file
+- [ ] Load stats from a JSON file
+- [ ] Allow character selection for stats
+- [ ] Only calculate average DPS during fights
 
 ## Bugs
 
