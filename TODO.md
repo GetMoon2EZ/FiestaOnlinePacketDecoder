@@ -11,7 +11,7 @@
 ## Bugs
 
 - [x] Fix important memory leak (crash after a few minutes)
-- [ ] Fix a bug where an incredibly high damage is recorded (1e+09)
+- [x] Fix a bug where an incredibly high damage is recorded (1e+09)
 - [ ] Find a way to distinguish damage done and damage received
 
 ## Build

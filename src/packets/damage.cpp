@@ -7,6 +7,8 @@
 #include "fopd/fopd_consts.h"
 
 
+#define MAX_POSSIBLE_DAMAGE     1000000000ULL // 1 Billion
+
 using namespace std;
 
 fopd_status_t FiestaOnlinePacketDamage::parsePayload(void)
@@ -36,6 +38,12 @@ fopd_status_t FiestaOnlinePacketDamage::parsePayload(void)
 
         default:
             return FOPD_ERROR;
+    }
+
+    if (this->damage_value >= MAX_POSSIBLE_DAMAGE) {
+        // Fix "infinite" damage bug
+        this->damage_value = 0;
+        return FOPD_ERROR;
     }
 
     return FOPD_OK;
