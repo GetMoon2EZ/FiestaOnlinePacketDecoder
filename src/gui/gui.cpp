@@ -6,6 +6,7 @@
 #include <vector>
 #include <time.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <iostream>
 
 #include "imgui.h"
@@ -14,6 +15,7 @@
 #include "implot.h"
 
 #include "fopd/fopd_data.h"
+#include "fopd/gui_helper.h"
 
 struct Vector2d {
     std::vector<double> x;
@@ -29,17 +31,31 @@ static std::vector<double> rolling_avg_dps;
 static std::vector<double> time_axis;
 static int dps_plot_timeout = 0;
 
-void Demo_LinePlots() {
-    static float xs1[1001], ys1[1001];
-    for (int i = 0; i < 1001; ++i) {
-        xs1[i] = i * 0.001f;
-        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
-    }
-    if (ImPlot::BeginPlot("Line Plots")) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
-        ImPlot::EndPlot();
-    }
+static void show_debug_info(FOPDData *data)
+{
+    struct MemoryInfo mem_info = get_memory_info();
+    char total_mem[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
+    char used_mem[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
+    char used_mem_proc[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
+
+    ImGui::Begin("Debug info");
+
+    // Display frame rate
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("Ping: %d ms", data->getPing());
+    ImGui::SeparatorText("Memory usage");
+
+    memory_display(mem_info.totalPhysMem, total_mem);
+    memory_display(mem_info.physMemUsed, used_mem);
+    memory_display(mem_info.physMemUsedByProcess, used_mem_proc);
+    ImGui::Text("Physical Memory: %s / %s / %s", used_mem_proc, used_mem, total_mem);
+
+    memory_display(mem_info.totalVirtualMem, total_mem);
+    memory_display(mem_info.virtualMemUsed, used_mem);
+    memory_display(mem_info.virtualMemUsedByProcess, used_mem_proc);
+    ImGui::Text("Virtual Memory : %s / %s / %s", used_mem_proc, used_mem, total_mem);
+    ImGui::End();
+
 }
 
 static void plot_dps_over_time(FOPDData *data)
@@ -82,12 +98,8 @@ void build_gui(void)
     // Making it thread safe should not be too hard :)
 
     FOPDData *data = FOPDData::getInstance();
-    ImGui::Begin("Debug info");
 
-    // Display frame rate
-    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Text("Ping: %d ms", data->getPing());
-    ImGui::End();
+    show_debug_info(data);
 
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("DPS meter");

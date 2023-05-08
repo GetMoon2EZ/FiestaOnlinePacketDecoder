@@ -20,4 +20,5 @@ target_sources(
     "threads/ping.cpp"
 
     "gui/gui.cpp"
+    "gui/gui_helper.cpp"
 )
