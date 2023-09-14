@@ -11,6 +11,10 @@
 - [ ] Load stats from a JSON file
 - [ ] Allow character selection for stats
 - [ ] Only calculate average DPS during fights
+- [ ] Peer to peer communication between players to share live DPS (port 5312)
+- [ ] Solo damage on single mob (nice to have for contest)
+- [ ] Group damage on single mob (nice to have for contest)
+- [ ] AOE damage (nova etc...)
 
 ## Bugs
 
@@ -25,6 +29,7 @@
 - [x] Fix vendor directory (missing dependencies not building with the project)
 - [ ] Package the app using CMake/CPack
 - [ ] Add support for x86 build
+- [ ] Build WpdPack from source
 
 ## MISC
 
