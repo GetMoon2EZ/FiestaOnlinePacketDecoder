@@ -41,3 +41,7 @@ build/
 
 # ImGUI configuration
 imgui.ini
+
+# Python tools
+__pycache__/
+.cache/
