@@ -17,7 +17,7 @@ typedef struct {
 
 /**
  * @brief Start up the DPS calculating thread
- * 
+ *
  * @param[in] q Queue that contains damage packets
  * @param[in] update_time_ms Determine the delay between two DPS updates 
  */

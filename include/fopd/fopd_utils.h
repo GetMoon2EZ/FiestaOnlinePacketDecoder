@@ -11,9 +11,9 @@
 
 /**
  * @brief Convert from little endian byte array (of 4 bytes) to uint32_t
- * 
- * @param byte_array 
- * @return uint32_t 
+ *
+ * @param byte_array
+ * @return uint32_t
  */
 uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array);
 

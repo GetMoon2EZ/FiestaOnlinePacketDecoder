@@ -11,7 +11,7 @@
 
 /**
  * @brief Start up the packet sniffing thread
- * 
+ *
  * @param[in] q Queue that contains damage packets
  */
 void sniffer_thread(fopd_damage_queue *dmg_q);

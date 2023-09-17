@@ -20,10 +20,10 @@ using namespace std;
 int main()
 #else
 int WINAPI WinMain(
-  HINSTANCE hInstance,
-  HINSTANCE hPrevInstance,
-  LPSTR     lpCmdLine,
-  int       nShowCmd)
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR     lpCmdLine,
+    int       nShowCmd)
 #endif
 {
     const uint32_t DPS_UPDATE_TIME_MS = 100;
