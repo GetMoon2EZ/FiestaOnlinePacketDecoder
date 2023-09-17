@@ -12,13 +12,21 @@ using namespace std;
 
 uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array)
 {
-    // Debug
-    // std::cout << "[DEBUG] byte_array: " << std::hex << static_cast<int>(byte_array[0]) << static_cast<int>(byte_array[1])  << static_cast<int>(byte_array[2])  << static_cast<int>(byte_array[3]) << std::endl;
-    // end debug
     uint32_t ret = 0;
     for (int i = 0; i < 4; i++) {
         ret = ret << 8;
         ret += byte_array[3 - i];
+    }
+
+    return ret;
+}
+
+uint16_t little_endian_byte_array_to_uint16(uint8_t *byte_array)
+{
+    uint16_t ret = 0;
+    for (int i = 0; i < 2; i++) {
+        ret = ret << 8;
+        ret += byte_array[1 - i];
     }
 
     return ret;
@@ -69,6 +77,22 @@ vector<pair<fopd_packet_type_t, vector<uint8_t>>> getPacketsFromRawTCP(uint8_t *
         // Go to the next packet
         pos += payload_len;
     }
+
+    return ret;
+}
+
+char *vec_u8_to_hex_str(std::vector<uint8_t> v, size_t *s)
+{
+    char *ret = NULL;
+    char hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+    *s = v.size() * 2 + 1;
+    ret = (char *) calloc(*s, sizeof(uint8_t));
+    for (size_t i = 0; i < v.size(); i++) {
+        ret[i * 2] = hex[v[i] >> 4];
+        ret[i * 2 +  1] = hex[v[i] & 0x0F];
+    }
+    ret[*s-1] = '\0';
 
     return ret;
 }

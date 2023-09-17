@@ -18,6 +18,14 @@
 uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array);
 
 /**
+ * @brief Convert from little endian byte array (of 2 bytes) to uint16_t
+ *
+ * @param byte_array
+ * @return uint16_t
+ */
+uint16_t little_endian_byte_array_to_uint16(uint8_t *byte_array);
+
+/**
  * @brief Get the corresponding packet type from a header
  * 
  * @param header Header byte array
@@ -28,5 +36,7 @@ fopd_packet_type_t packetTypeFromHeader(uint8_t header[FOPD_PACKET_HEADER_LEN]);
 fopd_packet_type_t packetTypeFromData(uint8_t *data);
 
 std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> getPacketsFromRawTCP(uint8_t *tcp_data, uint32_t tcp_data_len);
+
+char *vec_u8_to_hex_str(std::vector<uint8_t> v, size_t *s);
 
 #endif // __FOPD_UTILS_H__
