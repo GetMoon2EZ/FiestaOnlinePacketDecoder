@@ -33,34 +33,19 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
         // Return vector<pair<fopd_packet_type_t, uint8_t *>
         std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> fopd_pkts = getPacketsFromRawTCP(data, data_len);
 
-        // For each packet, initialize the right type then print it
-        // std::cout << "Extracted " << fopd_pkts.size() << " packets from payload" << std::endl;
-
         for (size_t i = 0; i < fopd_pkts.size(); i++) {
-            switch (fopd_pkts[i].first) {
-                case FOPD_ENTITY_CLICK_PACKET:
-                {
-                    FiestaOnlinePacketEntityStats entity_pkt(fopd_pkts[i].second);
-                    // std::cout << entity_pkt << std::endl;
-                }
-                break;
-
-                case FOPD_DAMAGE_PACKET:
-                {
-                    FiestaOnlinePacketDamage damage_pkt(fopd_pkts[i].second);
-                    std::cout << "Target remaining health : " << static_cast<int>(damage_pkt.getTargetRemainingHealth()) << std::endl;
-                    fopd_data->setTargetRemainingHealth(damage_pkt.getTargetRemainingHealth());
-                    std::lock_guard<std::mutex> lk(dmg_q->lock);
-                    dmg_q->q.push(damage_pkt);
-                    // std::cout << damage_pkt << std::endl;
-                }
-                break;
-
-                default:
-                {
-                    // std::cout << "Unknown packet" << std::endl;
-                }
+            if (fopd_pkts[i].first == 0) {
+                continue;
             }
+            // Print packets to stdout: [<PACKET_TYPE>] size: <SIZE> - <HEX_DATA>
+            size_t buf_size;
+            char *buf = vec_u8_to_hex_str(fopd_pkts[i].second, &buf_size);
+            std::cout << "[" << fopd_pkts[i].first << "] size: " << unsigned(fopd_pkts[i].second[0]) << " - ";
+            for (size_t i = 2; i + 1 < buf_size; i+=2) {
+                std::cout << buf[i] << buf[i + 1] << " ";
+            }
+            std::cout << std::endl;
+            free(buf);
         }
     }
     catch (pdu_not_found error) {
