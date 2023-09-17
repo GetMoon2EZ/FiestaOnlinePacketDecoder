@@ -9,6 +9,10 @@
 
 #define FOPD_ENTITY_CLICK_PACKET_PAYLOAD_MIN_LEN    (32 - FOPD_PACKET_HEADER_LEN)
 
+// Entity ID
+#define ENTITY_CLICK_ID_OFFSET              (3 - FOPD_PACKET_HEADER_LEN)
+#define ENTITY_CLICK_ID_LENGTH              2
+
 // Current health info
 #define ENTITY_CLICK_CURRENT_HEALTH_OFFSET  (5 - FOPD_PACKET_HEADER_LEN)
 #define ENTITY_CLICK_CURRENT_HEALTH_LENGTH  4
@@ -32,6 +36,7 @@
 class FiestaOnlinePacketEntityStats: public FiestaOnlinePacket
 {
 private:
+    uint16_t target_id = 0;
     uint32_t current_health = 0;
     uint32_t max_health = 0;
     uint32_t current_mana = 0;
@@ -53,6 +58,7 @@ public:
         parsePayload();
     }
 
+    uint16_t getTargetID(void) const;
     uint32_t getCurrentHealth(void) const;
     uint32_t getMaxHealth(void) const;
     uint32_t getCurrentMana(void) const;

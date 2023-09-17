@@ -17,13 +17,18 @@ fopd_status_t FiestaOnlinePacketEntityStats::parsePayload(void) {
         // std::cerr << "[ERROR] Cannot parse given data" << std::endl;
         return FOPD_ERROR;
     }
-    // Parse current health
+    this->target_id = little_endian_byte_array_to_uint16(this->payload + ENTITY_CLICK_ID_OFFSET);
     this->current_health = little_endian_byte_array_to_uint32(this->payload + ENTITY_CLICK_CURRENT_HEALTH_OFFSET);
     this->max_health = little_endian_byte_array_to_uint32(this->payload + ENTITY_CLICK_MAX_HEALTH_OFFSET);
     this->current_mana = little_endian_byte_array_to_uint32(this->payload + ENTITY_CLICK_CURRENT_MANA_OFFSET);
     this->max_mana = little_endian_byte_array_to_uint32(this->payload + ENTITY_CLICK_MAX_MANA_OFFSET);
     this->level = this->payload[ENTITY_CLICK_LEVEL_OFFSET];
     return FOPD_OK;
+}
+
+uint16_t FiestaOnlinePacketEntityStats::getTargetID(void) const
+{
+    return this->target_id;
 }
 
 uint32_t FiestaOnlinePacketEntityStats::getCurrentHealth(void) const
