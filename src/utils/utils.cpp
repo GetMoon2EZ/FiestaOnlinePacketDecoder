@@ -60,22 +60,36 @@ vector<pair<fopd_packet_type_t, vector<uint8_t>>> getPacketsFromRawTCP(uint8_t *
     std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> ret;
     uint32_t pos = 0;
 
+    // Go through the whole TCP data
     while (pos < tcp_data_len) {
-        uint16_t payload_len = ((uint16_t) tcp_data[pos + FOPD_PACKET_PAYLOAD_LEN_OFFSET]) + 1;
+        /*
+            Each TCP packet data contains multiple server payloads.
+            A payload starts with a length indicator followed by a message header.
+            The header indicates the format of the data which comes next.
+        */
+        uint16_t payload_len = ((uint16_t) tcp_data[pos + FOPD_PACKET_PAYLOAD_LEN_OFFSET]);
 
-        if (payload_len == 0 || pos + payload_len > tcp_data_len) {
+        /*
+            Sometime payload length is 0 or the packet might be fragmented (?)
+            We do not consider these messages for now.
+        */
+        if (payload_len == 0 || pos + payload_len + 1> tcp_data_len) {
             break;
         }
 
-        std::vector<uint8_t> payload(&tcp_data[pos], &tcp_data[pos + payload_len]);
+        /*
+            Get the payload from current position until the payload length
+            is reached (+1 because the payload length byte itself is not counted).
+        */
+        std::vector<uint8_t> payload(&tcp_data[pos], &tcp_data[pos + payload_len + 1]);
 
-        // Get packet type
+        /* Get packet type from the current payload */
         fopd_packet_type_t type = packetTypeFromData(&tcp_data[pos]);
 
         ret.push_back(pair<fopd_packet_type_t, vector<uint8_t>>(type, payload));
 
-        // Go to the next packet
-        pos += payload_len;
+        /* Go to the next payload */
+        pos += payload_len + 1;
     }
 
     return ret;

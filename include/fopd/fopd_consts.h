@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <string>
 
-/*****************/
+/****************/
 /* Game Servers */
-/*****************/
+/****************/
 
 /* French servers */
 #define FIESTA_ONLINE_FR_CYPIAN_ADDRESS     "35.189.254.31"
@@ -69,6 +69,9 @@ const struct server fo_servers[SERVER_COUNT] = {
     { "NA - Cyral", FIESTA_ONLINE_NA_CYRAL_ADDRESS },
 };
 
+/******************/
+/* Packet headers */
+/******************/
 
 /* Field offsets in raw tcp data */
 #define FOPD_PACKET_PAYLOAD_LEN_OFFSET  0
@@ -82,10 +85,8 @@ const struct server fo_servers[SERVER_COUNT] = {
 
 
 /* Spell damage packets (single target) */
-enum {
-    FOPD_SPELL_DAMAGE_PACKET_HEADER_B0 =    0x52,
-    FOPD_SPELL_DAMAGE_PACKET_HEADER_B1 =    0x24
-};
+#define FOPD_SPELL_DAMAGE_PACKET_HEADER_B0  0x52
+#define FOPD_SPELL_DAMAGE_PACKET_HEADER_B1  0x24
 
 const uint8_t FOPD_SPELL_DAMAGE_PACKET_HEADER[FOPD_PACKET_HEADER_LEN] = {
     FOPD_SPELL_DAMAGE_PACKET_HEADER_B0,
@@ -93,10 +94,8 @@ const uint8_t FOPD_SPELL_DAMAGE_PACKET_HEADER[FOPD_PACKET_HEADER_LEN] = {
 };
 
 /* Auto Attack damage packets */
-enum {
-    FOPD_AA_DAMAGE_PACKET_HEADER_B0 =       0x48,
-    FOPD_AA_DAMAGE_PACKET_HEADER_B1 =       0x24
-};
+#define FOPD_AA_DAMAGE_PACKET_HEADER_B0     0x48
+#define FOPD_AA_DAMAGE_PACKET_HEADER_B1     0x24
 
 const uint8_t FOPD_AA_DAMAGE_PACKET_HEADER[FOPD_PACKET_HEADER_LEN]    = {
     FOPD_AA_DAMAGE_PACKET_HEADER_B0,
