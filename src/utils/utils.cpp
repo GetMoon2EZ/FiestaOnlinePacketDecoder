@@ -32,15 +32,34 @@ uint16_t little_endian_byte_array_to_uint16(uint8_t *byte_array)
     return ret;
 }
 
+/**
+ * @brief Get a packet type from its header.
+ *
+ * @param header Header of the packet.
+ * @return fopd_packet_type_t The type of the packet.
+ */
 fopd_packet_type_t packetTypeFromHeader(uint8_t header[FOPD_PACKET_HEADER_LEN])
 {
-    if (memcmp(header, FOPD_SPELL_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 || memcmp(header, FOPD_AA_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+    /* Rank matches by most likely to less likely to minimize the amount of tests */
+    if (
+        memcmp(header, FOPD_NOISE_0_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 ||
+        memcmp(header, FOPD_NOISE_1_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 ||
+        memcmp(header, FOPD_NOISE_2_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 ||
+        memcmp(header, FOPD_NOISE_3_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0
+    ) {
+        return FOPD_NOISE_PACKET;
+    } else if (
+        memcmp(header, FOPD_SPELL_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0 ||
+        memcmp(header, FOPD_AA_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0
+    ) {
         return FOPD_DAMAGE_PACKET;
-    }
-    else if (memcmp(header, FOPD_ENTITY_CLICK_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+    } else if (memcmp(header, FOPD_ENTITY_CLICK_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
         return FOPD_ENTITY_CLICK_PACKET;
-    }
-    else {
+    } else if (memcmp(header, FOPD_FRIEND_CONNECT_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+        return FOPD_FRIEND_CONNECT_PACKET;
+    } else if (memcmp(header, FOPD_FRIEND_DISCONNECT_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+        return FOPD_FRIEND_DISCONNECT_PACKET;
+    } else {
         return FOPD_UNKNOWN_PACKET;
     }
 }

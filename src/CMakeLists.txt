@@ -13,6 +13,7 @@ target_sources(
     "packets/damage.cpp"
     "packets/entity_stats.cpp"
     "packets/packet.cpp"
+    "packets/connect.cpp"
 
     "threads/dps_meter.cpp"
     "threads/packet_sniffer.cpp"
