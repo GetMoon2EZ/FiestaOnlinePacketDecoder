@@ -1,8 +1,11 @@
 #include "fopd/fopd_data.h"
+
+#include <mutex>
+
 #include "fopd/fopd_consts.h"
 
-
 static FOPDData *instance = NULL;
+static std::mutex instantiation_lock;
 
 /****************/
 /* Constructors */
@@ -16,6 +19,11 @@ FOPDData::FOPDData(void) {}
 
 FOPDData *FOPDData::getInstance(void)
 {
+    /*
+     * There is a slim chance that two instances are created here
+     * so we must use a lock.
+     */
+    std::lock_guard<std::mutex> lk(instantiation_lock);
     if (instance == NULL) {
         instance = new FOPDData();
     }
@@ -121,7 +129,7 @@ double FOPDData::getDPSRollingAverage(void)
 
 size_t FOPDData::getServerIndex(void)
 {
-    // std::lock_guard<std::mutex> lk(this->lock);
+    std::lock_guard<std::mutex> lk(this->lock);
     return this->server_index;
 }
 
