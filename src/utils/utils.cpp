@@ -59,6 +59,8 @@ fopd_packet_type_t packetTypeFromHeader(uint8_t header[FOPD_PACKET_HEADER_LEN])
         return FOPD_FRIEND_CONNECT_PACKET;
     } else if (memcmp(header, FOPD_FRIEND_DISCONNECT_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
         return FOPD_FRIEND_DISCONNECT_PACKET;
+    } else if (memcmp(header, FOPD_ASSIGN_ID_PACKET_HEADER, FOPD_PACKET_HEADER_LEN) == 0) {
+        return FOPD_ASSIGN_ID_PACKET;
     } else {
         return FOPD_UNKNOWN_PACKET;
     }

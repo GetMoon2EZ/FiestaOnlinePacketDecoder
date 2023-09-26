@@ -13,6 +13,7 @@
 #include "fopd/fopd_packet.h"
 #include "fopd/fopd_packet_damage.h"
 #include "fopd/fopd_packet_entity_stats.h"
+#include "fopd/fopd_packet_assign_id.h"
 #include "fopd/fopd_packet_connect.h"
 #include "fopd/dps_meter.h"
 #include "fopd/fopd_data.h"

@@ -14,6 +14,7 @@ target_sources(
     "packets/entity_stats.cpp"
     "packets/packet.cpp"
     "packets/connect.cpp"
+    "packets/assign_id.cpp"
 
     "threads/dps_meter.cpp"
     "threads/packet_sniffer.cpp"
