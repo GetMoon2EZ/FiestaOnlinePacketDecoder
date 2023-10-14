@@ -14,27 +14,6 @@
 
 using namespace std;
 
-static uint32_t get_dmg_queue_max(queue<FiestaOnlinePacketDamage> q)
-{
-    uint32_t max_dmg = 0;
-    while (!q.empty()) {
-        max_dmg = max(max_dmg, q.front().getDamageValue());
-        q.pop();
-    }
-    return max_dmg;
-}
-
-static uint32_t get_dmg_queue_sum(queue<FiestaOnlinePacketDamage> q)
-{
-    // It is VERY unlikely that the DPS of one player exceeds INT_MAX
-    uint32_t sum = 0;
-    while (!q.empty()) {
-        sum += q.front().getDamageValue();
-        q.pop();
-    }
-    return sum;
-}
-
 static void print_dps(const int dps, const int max_dps)
 {
     // Cast to int for readability

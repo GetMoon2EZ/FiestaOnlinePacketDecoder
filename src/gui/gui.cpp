@@ -1,5 +1,10 @@
 #include "fopd/gui.h"
 
+#include "fopd/fopd_data.h"
+#include "fopd/fopd_consts.h"
+#include "fopd/gui_helper.h"
+#include "fopd/fo_ping.h"
+
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <tchar.h>
@@ -14,9 +19,6 @@
 #include "imgui_impl_dx12.h"
 #include "implot.h"
 
-#include "fopd/fopd_data.h"
-#include "fopd/fopd_consts.h"
-#include "fopd/gui_helper.h"
 
 struct Vector2d {
     std::vector<double> x;
@@ -38,14 +40,19 @@ static void show_debug_info(FOPDData *data)
     char total_mem[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
     char used_mem[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
     char used_mem_proc[MEMORY_DISPLAY_BUFFER_SIZE] = { 0 };
+    uint32_t ping = data->getPing();
 
     ImGui::Begin("Debug info");
 
     // Display frame rate
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Text("Ping: %d ms", data->getPing());
-    ImGui::SeparatorText("Memory usage");
+    if (ping == PING_ERROR) {
+        ImGui::Text("Latency: N/A");
+    } else {
+        ImGui::Text("Latency: %d ms", ping);
+    }
 
+    ImGui::SeparatorText("Memory usage");
     memory_display(mem_info.totalPhysMem, total_mem);
     memory_display(mem_info.physMemUsed, used_mem);
     memory_display(mem_info.physMemUsedByProcess, used_mem_proc);
@@ -56,7 +63,6 @@ static void show_debug_info(FOPDData *data)
     memory_display(mem_info.virtualMemUsedByProcess, used_mem_proc);
     ImGui::Text("Virtual Memory : %s / %s / %s", used_mem_proc, used_mem, total_mem);
     ImGui::End();
-
 }
 
 static void show_parameters(FOPDData *data)
@@ -72,10 +78,8 @@ static void show_parameters(FOPDData *data)
     size_t item_current = data->getServerIndex();
     const char* combo_preview_value = server_names[item_current];  // Pass in the preview value visible before opening the combo (it could be anything)
 
-    if (ImGui::BeginCombo("Server", combo_preview_value, 0))
-    {
-        for (size_t n = 0; n < IM_ARRAYSIZE(server_names); n++)
-        {
+    if (ImGui::BeginCombo("Server", combo_preview_value, 0)) {
+        for (size_t n = 0; n < IM_ARRAYSIZE(server_names); n++) {
             const bool is_selected = (item_current == n);
             if (ImGui::Selectable(server_names[n], is_selected)) {
                 if (!is_selected) {
@@ -96,7 +100,6 @@ static void show_parameters(FOPDData *data)
 
     ImGui::Text("Server address: %s", fo_servers[item_current].address);
     ImGui::End();
-
 }
 
 static void plot_dps_over_time(FOPDData *data)

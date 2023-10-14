@@ -1,167 +1,60 @@
-#include <iostream>
-#include <cstdint>
-#include <chrono>
-#include <thread>
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
-#include <tins/tins.h>
-#include <windows.h>
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <icmpapi.h>
 
-#include "fopd/fopd_consts.h"
-#include "fopd/fopd_data.h"
+#include "fopd/fo_ping.h"
+#include "fopd/fopd_utils.h"
 
-#ifndef PING_ERROR
-#define PING_ERROR  9999
-#endif
 
-#ifndef BUFSIZE
-#define BUFSIZE     4096
-#endif
+#define PING_ERROR      99999
+#define PING_DATA_SIZE  32
 
-using namespace std;
-
-static HANDLE m_hChildStd_OUT_Rd = NULL;
-static HANDLE m_hChildStd_OUT_Wr = NULL;
-static HANDLE m_hreadDataFromExtProgram = NULL;
-static uint32_t last_ping = PING_ERROR;
-
-static HRESULT RunExternalProgram(const string& externalProgram, const string& arguments);
-static DWORD __stdcall readDataFromPingProgram(void *argh);
-static void parsePingOutput(const CHAR *buffer);
-
-void ping_thread(uint32_t update_delta_ms)
+uint32_t
+ping(uint32_t ipAddr)
 {
-    FOPDData *data = FOPDData::getInstance();
-    char ping_param[256] = { 0 };
-    size_t current_server = data->getServerIndex();
-    size_t old_server = current_server;
+    uint32_t roundTripTime = PING_ERROR;
+    HANDLE hIcmpFile;
+    LPVOID replyBuffer;
+    DWORD replySize;
+    DWORD echoRet;
+    PICMP_ECHO_REPLY pEchoReply;
+    char data[PING_DATA_SIZE];
 
-    snprintf(ping_param, sizeof(ping_param), "%s -n 1", fo_servers[current_server].address);
-
-    while (true) {
-        current_server = data->getServerIndex();
-        if (current_server != old_server) {
-            snprintf(ping_param, sizeof(ping_param), "%s -n 1", fo_servers[current_server].address);
-            old_server = current_server;
-        }
-
-        // Run the ping command as an external program
-        // This should update last_ping to the ping output
-        RunExternalProgram("ping", ping_param);
-        // cout << "[DEBUG] ping: " << static_cast<int>(last_ping) << " ms" << endl;
-        data->setPing(last_ping);
-        // Pause current thread
-        this_thread::sleep_for(chrono::milliseconds(update_delta_ms));
+    /* Data initialization */
+    for (int i = 0; i < PING_DATA_SIZE - 1; i++) {
+        data[i] = i + '0';
     }
-}
+    data[PING_DATA_SIZE - 1] = 0;
 
-static HRESULT RunExternalProgram(const string& externalProgram, const string& arguments)
-{
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    SECURITY_ATTRIBUTES saAttr;
-
-    // Set the security attributes correctly
-    ZeroMemory(&saAttr, sizeof(saAttr));
-    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-    saAttr.bInheritHandle = TRUE;
-    saAttr.lpSecurityDescriptor = NULL;
-
-    // Create a pipe for the child process's STDOUT.
-    if (!m_hChildStd_OUT_Rd || !m_hChildStd_OUT_Wr) {
-        if (!CreatePipe(&m_hChildStd_OUT_Rd, &m_hChildStd_OUT_Wr, &saAttr, 0)) {
-            // log error
-            return HRESULT_FROM_WIN32(GetLastError());
-        }
+    hIcmpFile = IcmpCreateFile();
+    if (hIcmpFile == INVALID_HANDLE_VALUE) {
+        print_system_error("IcmpCreateFile");
+        return PING_ERROR;
     }
 
-    // Ensure the read handle to the pipe for STDOUT is not inherited.
-
-    if (!SetHandleInformation(m_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0)) {
-        // log error
-        return HRESULT_FROM_WIN32(GetLastError());
+    replySize = sizeof(ICMP_ECHO_REPLY) + sizeof(data);
+    replyBuffer = malloc(replySize);
+    if (replyBuffer == NULL) {
+        fprintf(stderr, "[ERROR] Memory allocation error\n");
+        IcmpCloseHandle(hIcmpFile);
+        return PING_ERROR;
     }
 
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    si.hStdError = m_hChildStd_OUT_Wr;
-    si.hStdOutput = m_hChildStd_OUT_Wr;
-    si.dwFlags |= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE;
-
-    ZeroMemory(&pi, sizeof(pi));
-
-    string commandLine = externalProgram + " " + arguments;
-
-    // Start the child process. 
-    if (!CreateProcessA(NULL,           // No module name (use command line)
-        (TCHAR*)commandLine.c_str(),    // Command line
-        NULL,                           // Process handle not inheritable
-        NULL,                           // Thread handle not inheritable
-        TRUE,                           // Set handle inheritance
-        SW_HIDE,                        // Hide window
-        NULL,                           // Use parent's environment block
-        NULL,                           // Use parent's starting directory 
-        &si,                            // Pointer to STARTUPINFO structure
-        &pi)                            // Pointer to PROCESS_INFORMATION structure
-        ) {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    // Start reader thread if not currently running
-    if (!m_hreadDataFromExtProgram || WaitForSingleObject(m_hreadDataFromExtProgram, 0) == WAIT_OBJECT_0)
-        m_hreadDataFromExtProgram  = CreateThread(0, 0, readDataFromPingProgram, NULL, 0, NULL);
-    return S_OK;
-}
-
-static DWORD __stdcall readDataFromPingProgram(void *argh)
-{
-    DWORD dwRead = 0;
-    CHAR chBuf[BUFSIZE] = { 0 };
-    BOOL bSuccess = FALSE;
-
-    while (true) {
-        bSuccess = ReadFile(m_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL);
-        if (!bSuccess)
-            break;
-
-        if (dwRead == 0)
-            break;
-
-        // Parse ping output
-        parsePingOutput(chBuf);
-
-        // Reset buffer
-        ZeroMemory(chBuf, dwRead);
+    echoRet = IcmpSendEcho(hIcmpFile, ipAddr, data, PING_DATA_SIZE, NULL, replyBuffer, replySize, 10000);
+    if (echoRet == 0) {
+        print_system_error("IcmpSendEcho");
+        goto exit;
     }
 
-    CloseHandle(m_hChildStd_OUT_Rd);
-    CloseHandle(m_hChildStd_OUT_Wr);
-    m_hChildStd_OUT_Rd = NULL;
-    m_hChildStd_OUT_Wr = NULL;
+    pEchoReply = (PICMP_ECHO_REPLY) replyBuffer;
+    roundTripTime = (uint32_t) pEchoReply->RoundTripTime;
 
-    return 0;
-}
-
-static void parsePingOutput(const CHAR *buffer)
-{
-    const char *p = strrchr(buffer, ' ');
-    if (p == nullptr) {
-        // cerr << "[ERROR] ping: strrchr returned NULL" << endl;
-        last_ping = PING_ERROR;
-        return;
-    }
-
-    if (*(p - 1) != '=') {
-        // cout << "[ERROR] buffer: " << buffer << endl;
-        // cerr << "[ERROR] ping: unreachable host" << endl;
-        last_ping = PING_ERROR;
-        return;
-    }
-
-    // Convert the value to an int
-    uint32_t ping = static_cast<uint32_t>(strtol(p, NULL, 10));
-
-    // strtol returns 0 if no valid value in string and ping cannot be 0
-    last_ping = ping>0?ping:PING_ERROR;
+exit:
+    IcmpCloseHandle(hIcmpFile);
+    free(replyBuffer);
+    return roundTripTime;
 }

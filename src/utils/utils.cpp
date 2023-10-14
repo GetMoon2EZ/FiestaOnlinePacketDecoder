@@ -2,13 +2,21 @@
 
 #include <cstdint>
 #include <cstdlib>
-
 #include <vector>
+
+#include <winsock2.h>
+#include <winbase.h>
+#include <errhandlingapi.h>
 
 #include "fopd/fopd_types.h"
 #include "fopd/fopd_consts.h"
 
+
 using namespace std;
+
+#define UNKNOWNENDIAN   0xFFFF
+
+uint16_t endianess = UNKNOWNENDIAN;
 
 uint32_t little_endian_byte_array_to_uint32(uint8_t *byte_array)
 {
@@ -95,4 +103,89 @@ char *vec_u8_to_hex_str(std::vector<uint8_t> v, size_t *s)
     ret[*s-1] = '\0';
 
     return ret;
+}
+
+int
+timeval_subtract(struct timeval x, struct timeval y, struct timeval *result)
+{
+    /* Perform the carry for the later subtraction by updating y. */
+    if (x.tv_usec < y.tv_usec) {
+        int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
+        y.tv_usec -= 1000000 * nsec;
+        y.tv_sec += nsec;
+    }
+    if (x.tv_usec - y.tv_usec > 1000000) {
+        int nsec = (x.tv_usec - y.tv_usec) / 1000000;
+        y.tv_usec += 1000000 * nsec;
+        y.tv_sec -= nsec;
+    }
+
+    /* Compute the time remaining to wait. tv_usec is certainly positive. */
+    result->tv_sec = x.tv_sec - y.tv_sec;
+    result->tv_usec = x.tv_usec - y.tv_usec;
+
+    /* Return 1 if result is negative. */
+    return x.tv_sec < y.tv_sec;
+}
+
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
+}
+
+void
+print_system_error(const char *func_name)
+{
+    DWORD err_code = GetLastError();
+    LPVOID lpMsgBuf;
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        err_code,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &lpMsgBuf,
+        0, NULL
+    );
+
+    fprintf(stderr, "[ERROR] %s returned error %d: %s\n", func_name, err_code, (PTSTR) lpMsgBuf);
+    LocalFree(lpMsgBuf);
+}
+
+uint16_t
+letoss(uint16_t x)
+{
+    if (endianess == UNKNOWNENDIAN) {
+        int n = 1;
+        endianess = *(char *)&n == 1 ? LITTLEENDIAN : BIGENDIAN;
+    }
+
+    return endianess == BIGENDIAN ? ntohs(x) : x;
+}
+
+uint32_t
+letosl(uint32_t x)
+{
+    if (endianess == UNKNOWNENDIAN) {
+        int n = 1;
+        endianess = *(char *)&n == 1 ? LITTLEENDIAN : BIGENDIAN;
+    }
+
+    return endianess == BIGENDIAN ? ntohl(x) : x;
 }

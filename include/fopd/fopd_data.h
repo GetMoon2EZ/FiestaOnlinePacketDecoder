@@ -1,6 +1,10 @@
-#pragma once // TODO: Header guards
+#ifndef __FOPD_DATA_H__
+#define __FOPD_DATA_H__
 
 #include <mutex>
+#include <queue>
+
+#include <fopd/fopd_packet.h>
 
 #define ROLLING_AVERAGE_POINT_COUNT     50
 
@@ -9,11 +13,14 @@ class FOPDData
 public:
     static FOPDData *getInstance(void);
 
+    void pushToDamageQueue(struct fopacket_dmg packet_dmg);
+    void updateDPS(void);
+
     void setDPS(uint32_t dps);
     void setPing(uint32_t ping);
     void setTargetRemainingHealth(uint32_t target_health);
     void trySetMaxDmg(uint32_t damage);
-    bool FOPDData::setServerIndex(size_t server_index);
+    bool setServerIndex(size_t server_index);
 
     uint32_t getDPS(void);
     uint32_t getMaxDPS(void);
@@ -30,6 +37,12 @@ public:
 private:
     std::mutex lock;
 
+    /* Data gathered by other sniffer and ping threads */
+    uint32_t ping = 0;
+    uint32_t target_remaining_health = 0;
+    std::queue<fopacket_dmg> dmg_q;
+
+    /* Internally calculated values */
     uint32_t dps = 0;
     uint32_t max_dps = 0;
     uint32_t max_dmg = 0;
@@ -38,12 +51,12 @@ private:
     uint32_t rolling_average_arr[ROLLING_AVERAGE_POINT_COUNT] = { 0 };
     uint32_t rolling_average_next = 0;
 
-    uint32_t ping = 0;
-    uint32_t target_remaining_health = 0;
-
+    /* User parameters */
     size_t server_index = 0;
 
     FOPDData(void);
     void updateDPSAverage(void);
     void updateDPSRollingAverage(void);
 };
+
+#endif // __FOPD_DATA_H__

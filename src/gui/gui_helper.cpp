@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "windows.h"
-#include "psapi.h"
+#include <windows.h>
+#include <psapi.h>
 
 
 #define BYTE        1ULL

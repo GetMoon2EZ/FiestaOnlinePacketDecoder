@@ -1,66 +1,57 @@
 #include "fopd/packet_sniffer.h"
 
-#include <chrono>
-#include <mutex>
-#include <queue>
-#include <thread>
-#include <utility>
-#include <vector>
-
+#include <stdio.h>
 #include <tins/tins.h>
 
 #include "fopd/fopd_consts.h"
 #include "fopd/fopd_packet.h"
-#include "fopd/fopd_packet_damage.h"
-#include "fopd/fopd_packet_entity_stats.h"
-#include "fopd/dps_meter.h"
 #include "fopd/fopd_data.h"
 
 using namespace Tins;
 
 static Sniffer configure_sniffer(size_t server);
 
-bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
+bool process_packet(PDU& pkt)
 {
-    FOPDData *fopd_data = FOPDData::getInstance();
     try {
         // Extract raw TCP data from the packet
         const RawPDU &raw = pkt.rfind_pdu<RawPDU>();
         auto payload = raw.payload();
         uint8_t *data = payload.data();
         uint32_t data_len = raw.payload_size();
+        uint32_t current_pos = 0;
+        uint32_t payload_len = 0;
+        struct fopacket packet;
 
-        // Return vector<pair<fopd_packet_type_t, uint8_t *>
-        std::vector<std::pair<fopd_packet_type_t, std::vector<uint8_t>>> fopd_pkts = getPacketsFromRawTCP(data, data_len);
-
-        // For each packet, initialize the right type then print it
-        // std::cout << "Extracted " << fopd_pkts.size() << " packets from payload" << std::endl;
-
-        for (size_t i = 0; i < fopd_pkts.size(); i++) {
-            switch (fopd_pkts[i].first) {
-                case FOPD_ENTITY_CLICK_PACKET:
-                {
-                    FiestaOnlinePacketEntityStats entity_pkt(fopd_pkts[i].second);
-                    // std::cout << entity_pkt << std::endl;
-                }
+        while (current_pos < data_len && get_payload_len(&data[current_pos], data_len - current_pos, &payload_len) != 1) {
+            if (payload_len == 0) {
+                fprintf(stderr, "[ERROR] Empty payload\n");
                 break;
-
-                case FOPD_DAMAGE_PACKET:
-                {
-                    FiestaOnlinePacketDamage damage_pkt(fopd_pkts[i].second);
-                    std::cout << "Target remaining health : " << static_cast<int>(damage_pkt.getTargetRemainingHealth()) << std::endl;
-                    fopd_data->setTargetRemainingHealth(damage_pkt.getTargetRemainingHealth());
-                    std::lock_guard<std::mutex> lk(dmg_q->lock);
-                    dmg_q->q.push(damage_pkt);
-                    // std::cout << damage_pkt << std::endl;
-                }
-                break;
-
-                default:
-                {
-                    // std::cout << "Unknown packet" << std::endl;
-                }
             }
+
+            if (parse_packet(&data[current_pos], payload_len, &packet) != 0) {
+                fprintf(stderr, "[ERROR] Fail to parse packet\n");
+                break;
+            }
+
+            switch (packet.type) {
+                case FOPACKET_DMG_AA:
+                case FOPACKET_DMG_SPELL:
+                    handle_damage(&packet);
+                    break;
+                case FOPACKET_ENTITY_INFO:
+                    handle_entity_info(&packet);
+                    break;
+                default:
+                    /* Nothing to do */
+                    printf("[DEBUG] %ld - ", payload_len);
+                    for (uint32_t i = 0; i < payload_len; i++) {
+                        printf("%02X ", data[current_pos + i]);
+                    }
+                    printf("\n");
+                    break;
+            }
+            current_pos += payload_len;
         }
     }
     catch (pdu_not_found error) {
@@ -69,7 +60,7 @@ bool process_packet(PDU& pkt, fopd_damage_queue *dmg_q)
     return true;
 }
 
-void sniffer_thread(fopd_damage_queue *dmg_q)
+void sniffer_thread(void)
 {
     FOPDData *data = FOPDData::getInstance();
     size_t current_server = data->getServerIndex();
@@ -86,7 +77,7 @@ void sniffer_thread(fopd_damage_queue *dmg_q)
             sniffer = configure_sniffer(current_server);
             old_server = current_server;
         }
-        sniffer.sniff_loop(std::bind(&process_packet, std::placeholders::_1, dmg_q), 1);
+        sniffer.sniff_loop(&process_packet, 1);
     }
 }
 

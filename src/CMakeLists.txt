@@ -10,12 +10,10 @@ target_sources(
     "utils/utils.cpp"
     "utils/data.cpp"
 
-    "packets/damage.cpp"
-    "packets/entity_stats.cpp"
     "packets/packet.cpp"
 
-    "threads/dps_meter.cpp"
     "threads/packet_sniffer.cpp"
+    "threads/timer.cpp"
     "threads/ping.cpp"
 
     "gui/gui.cpp"

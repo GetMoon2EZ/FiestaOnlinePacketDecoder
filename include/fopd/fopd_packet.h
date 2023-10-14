@@ -1,84 +1,96 @@
 #ifndef __FOPD_PACKETS_H__
 #define __FOPD_PACKETS_H__
 
-#include <iostream>
-#include <chrono>
-#include <vector>
-#include <cassert>
+#include <stdint.h>
+#include <winsock2.h>
 
-#include "fopd/fopd_types.h"
-#include "fopd/fopd_consts.h"
-#include "fopd/fopd_utils.h"
+#include <fopd/fopd_utils.h>
 
-/**
- * @brief Generic class for packets
- * 
- */
-class FiestaOnlinePacket
-{
-protected:
-    // Timestamp
-    std::chrono::high_resolution_clock::time_point timestamp;
-    // Indicates the length of the payload
-    uint8_t payload_len = 0;
-    // Array of the header
-    uint8_t header[FOPD_PACKET_HEADER_LEN]= { 0 };
-    // Packet payload (TCP Data excluding payload_len and header fields)
-    uint8_t payload[FOPD_PACKET_PAYLOAD_MAX_LEN] = { 0 };
 
-public:
-    FiestaOnlinePacket(void) {
-        this->timestamp = std::chrono::high_resolution_clock::now();
-    }
+#define FO_PACKET_MAX_DATA_LEN  1500
+#define FO_PACKET_MIN_LEN       3       /* len on 1 byte, type on 2 bytes */
+#define FO_SPELL_MAX_TARGET_HIT 20      /* No spell can hit more than 20 targets ? */
 
-    FiestaOnlinePacket(uint8_t *data) {
-        // Set the timestamp
-        this->timestamp = std::chrono::high_resolution_clock::now();
-        // Get payload length from data
-        this->payload_len = data[FOPD_PACKET_PAYLOAD_LEN_OFFSET];
-        // Payload length includes the header, need to substract header len
-        assert(this->payload_len >= FOPD_PACKET_HEADER_LEN);
-        this->payload_len -= FOPD_PACKET_HEADER_LEN;
-        // Set header
-        memcpy(this->header, &data[FOPD_PACKET_HEADER_OFFSET], FOPD_PACKET_HEADER_LEN);
-        // Copy remaining data as payload
-        memcpy(this->payload, &data[FOPD_PACKET_PAYLOAD_OFFSET], this->payload_len);
-    }
-
-    FiestaOnlinePacket(std::vector<uint8_t> data) {
-        // Set the timestamp
-        this->timestamp = std::chrono::high_resolution_clock::now();
-
-        uint8_t *_data = &data[0];
-        this->payload_len = _data[FOPD_PACKET_PAYLOAD_LEN_OFFSET];
-        // Payload length includes the header, need to substract header len
-        assert(this->payload_len >= FOPD_PACKET_HEADER_LEN);
-        this->payload_len -= FOPD_PACKET_HEADER_LEN;
-        // Set header
-        memcpy(this->header, &_data[FOPD_PACKET_HEADER_OFFSET], FOPD_PACKET_HEADER_LEN);
-        // Copy remaining data as payload
-        memcpy(this->payload, &_data[FOPD_PACKET_PAYLOAD_OFFSET], this->payload_len);
-    }
-
-    FiestaOnlinePacket(fopd_packet_type_t packet_type) {
-        this->timestamp = std::chrono::high_resolution_clock::now();
-        switch (packet_type) {
-            case FOPD_DAMAGE_PACKET:
-                memcpy(this->header, FOPD_SPELL_DAMAGE_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);
-                break;
-            case FOPD_ENTITY_CLICK_PACKET:
-                memcpy(this->header, FOPD_ENTITY_CLICK_PACKET_HEADER, FOPD_PACKET_HEADER_LEN);
-                break;
-            default:
-                // Unknown packet type, cannot set the header
-                memset(this->header, 0, FOPD_PACKET_HEADER_LEN * sizeof(*(this->header)));
-        }
-    }
-
-    uint8_t getPayloadLen(void) const;
-    const uint8_t* getHeader(void) const;
-    const uint8_t* getPayload(void) const;
-    const std::chrono::high_resolution_clock::time_point getTimestamp(void) const;
+enum errors {
+    INPUT_ERROR = -2,
+    INTERNAL_ERROR = -1,
+    SUCCESS = 0,
 };
+
+enum fopacket_types {
+    FOPACKET_DMG_AA =       0x2448,
+    FOPACKET_DMG_SPELL =    0x2452,
+    FOPACKET_ENTITY_INFO =  0x2402,
+    FOPACKET_FRIEND_LOGIN = 0x743D,
+    FOPACKET_FRIEND_LOGOUT = 0x540A,
+};
+
+/* Generic packet */
+PACK(struct fopacket {
+    uint16_t len;
+    uint16_t type;
+    uint8_t data[FO_PACKET_MAX_DATA_LEN];
+});
+
+PACK(struct dmg_info {
+    uint16_t target_id;     /* ID of the target receiving the hit */
+    uint8_t _unknown_1[2];  /* Not known, set for packing */
+    uint32_t inflicted_dmg; /* Inflicted damage */
+    uint32_t remaining_hp;  /* Target remaining HP after the hit*/
+    uint8_t _unknown_2[2];  /* Not known, set for packing */
+});
+
+/* Damage inflicted by auto attacks */
+PACK(struct fopacket_dmg_aa {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint16_t origin_id;     /* ID of the player/mob dealing the hit */
+    /* Bellow looks the same as struct dmg_info */
+    // uint16_t target_id;     /* ID of the target receiving the hit */
+    // uint8_t _unknown_1[2];  /* Not known, set for packing */
+    // uint32_t inflicted_dmg; /* Inflicted damage */
+    // uint32_t remaining_hp;  /* Target remaining HP after the hit*/
+    // uint8_t _unknown_2[4];  /* Not known, set for packing */
+    struct dmg_info dinfo; /* Damages dealt by the auto attack*/
+    uint8_t _unknown_2[2];
+});
+
+/* Damage inflicted by spells */
+PACK(struct fopacket_dmg_spell {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint8_t _unknown_1[2];  /* Not known, set for packing */
+    uint16_t origin_id;     /* ID of the player/mob dealing the hit */
+    uint8_t _unknown_2[5];  /* Not known, set for packing */
+    struct dmg_info dinfo[FO_SPELL_MAX_TARGET_HIT];  /* Damages dealt by the spell on one or multiple targets */
+});
+
+struct fopacket_dmg {
+    struct timeval timestamp;
+    uint16_t len;
+    uint16_t type;
+    uint16_t origin_id;
+    uint8_t hit_cnt; /* Number of targets hit */
+    struct dmg_info dinfo[FO_SPELL_MAX_TARGET_HIT];
+};
+
+PACK(struct fopacket_entity_info {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint16_t id;            /* ID of the entity */
+    uint32_t current_hp;    /* Current HP */
+    uint32_t max_hp;        /* Maximum HP */
+    uint32_t current_sp;    /* Current SP*/
+    uint32_t max_sp;        /* Maximum SP */
+    uint8_t _unknown_1[8];  /* Not known, set for packing */
+    uint8_t level;          /* Entity level [1-150]*/
+});
+
+int get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len);
+int parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet);
+int parse_packet_damage(const struct fopacket *packet, struct fopacket_dmg *out);
+int parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_info *out);
+int handle_damage(struct fopacket *packet);
+int handle_entity_info(struct fopacket *packet);
 
 #endif // __FOPD_PACKETS_H__
