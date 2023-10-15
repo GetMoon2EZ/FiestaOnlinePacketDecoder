@@ -213,6 +213,9 @@ get_dmg_queue_max(std::queue<fopacket_dmg> q)
     uint32_t max_dmg = 0;
     while (!q.empty()) {
         for (uint8_t i = 0; i < q.front().hit_cnt; i++) {
+            if (q.front().dinfo[i].inflicted_dmg > FO_MAX_POSSIBLE_DAMAGE) {
+                continue;
+            }
             max_dmg = (std::max)(max_dmg, q.front().dinfo[i].inflicted_dmg);
         }
         q.pop();
@@ -223,10 +226,13 @@ get_dmg_queue_max(std::queue<fopacket_dmg> q)
 static uint32_t
 get_dmg_queue_sum(std::queue<fopacket_dmg> q)
 {
-    // It is VERY unlikely that the DPS of one player exceeds INT_MAX
     uint32_t sum = 0;
     while (!q.empty()) {
         for (uint8_t i = 0; i < q.front().hit_cnt; i++) {
+            if (q.front().dinfo[i].inflicted_dmg > FO_MAX_POSSIBLE_DAMAGE) {
+                continue;
+            }
+
             sum += q.front().dinfo[i].inflicted_dmg;
         }
         q.pop();

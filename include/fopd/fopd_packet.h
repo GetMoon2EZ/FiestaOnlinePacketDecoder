@@ -10,6 +10,7 @@
 #define FO_PACKET_MAX_DATA_LEN  1500
 #define FO_PACKET_MIN_LEN       3       /* len on 1 byte, type on 2 bytes */
 #define FO_SPELL_MAX_TARGET_HIT 20      /* No spell can hit more than 20 targets ? */
+#define FO_MAX_POSSIBLE_DAMAGE  1000000000ULL // 1 Billion
 
 enum errors {
     INPUT_ERROR = -2,
