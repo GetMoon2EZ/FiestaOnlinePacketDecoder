@@ -42,13 +42,12 @@ bool process_packet(PDU& pkt)
                 case FOPACKET_ENTITY_INFO:
                     handle_entity_info(&packet);
                     break;
+                case FOPACKET_FRIEND_FIND:
+                    handle_friend_find(&packet);
+                    break;
                 default:
                     /* Nothing to do */
-                    printf("[DEBUG] %ld - ", payload_len);
-                    for (uint32_t i = 0; i < payload_len; i++) {
-                        printf("%02X ", data[current_pos + i]);
-                    }
-                    printf("\n");
+                    print_packet(&packet);
                     break;
             }
             current_pos += payload_len;

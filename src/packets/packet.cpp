@@ -10,6 +10,23 @@
 #include "fopd/fopd_data.h"
 #include "fopd/fopd_utils.h"
 
+
+void
+print_packet(const struct fopacket *packet)
+{
+    printf("[DEBUG] %u - %04X - ", packet->len, packet->type);
+    if (packet->len < sizeof(packet->type)) {
+        printf("\n");
+        return;
+    }
+
+    for (int i = 0; i < packet->len - sizeof(packet->type); i++) {
+        printf("%02X ", packet->data[i]);
+    }
+    printf("\n");
+
+}
+
 int
 get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len)
 {
@@ -44,6 +61,7 @@ parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet)
     uint32_t tmp_size = buf_size;
 
     if (buf_size < FO_PACKET_MIN_LEN || buf_size > sizeof(*packet)) {
+        printf("buf_size = %u\n", buf_size);
         fprintf(stderr, "[ERROR] Invalid input\n");
         return -1;
     }
@@ -72,12 +90,6 @@ parse_packet_damage(const struct fopacket *packet, struct fopacket_dmg *out)
 {
     struct fopacket_dmg_aa aa;
     struct fopacket_dmg_spell spell;
-
-    printf("[DEBUG] %d - %04X - ", packet->len, packet->type);
-    for (int i = 0; i < packet->len; i++) {
-        printf("%02X ", packet->data[i]);
-    }
-    printf("\n");
 
     memset(out, 0, sizeof(*out));
 
@@ -159,6 +171,34 @@ parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_i
 }
 
 int
+parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out)
+{
+    uint32_t noplayer_len;
+    uint8_t player_cnt;
+
+    memset(out, 0, sizeof(*out));
+
+    if (packet->type != FOPACKET_FRIEND_FIND) {
+        return -2;
+    }
+
+    noplayer_len = sizeof(*out) - sizeof(out->len) - sizeof(struct player_info) * FO_FRIEND_MAX_PLAYERS;
+    player_cnt = (uint8_t) (packet->len - noplayer_len) / sizeof(struct player_info);
+
+    if (
+        packet->len > out->len - sizeof(out->len) ||
+        (packet->len % sizeof(struct player_info)) != noplayer_len ||
+        packet->len < (noplayer_len + sizeof(struct player_info)) ||
+        player_cnt > FO_FRIEND_MAX_PLAYERS
+    ) {
+        return -1;
+    }
+
+    memcpy(out, packet, packet->len + sizeof(packet->len));
+    return 0;
+}
+
+int
 handle_damage(struct fopacket *packet)
 {
     int ret;
@@ -197,5 +237,21 @@ handle_entity_info(struct fopacket *packet)
     }
 
     // Do stuff...
+    return 0;
+}
+
+int
+handle_friend_find(struct fopacket *packet)
+{
+    int ret;
+    struct fopacket_friend_find packet_friend;
+    FOPDData *fopd_data = FOPDData::getInstance();
+
+    ret = parse_packet_friend_find(packet, &packet_friend);
+    if (ret != 0) {
+        return ret;
+    }
+
+    fopd_data->setFriendInfos(&packet_friend);
     return 0;
 }

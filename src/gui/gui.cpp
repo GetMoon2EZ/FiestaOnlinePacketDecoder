@@ -4,6 +4,7 @@
 #include "fopd/fopd_consts.h"
 #include "fopd/gui_helper.h"
 #include "fopd/fo_ping.h"
+#include "fopd/fopd_translation.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -144,6 +145,39 @@ static void plot_dps_over_time(FOPDData *data)
     ImGui::End();
 }
 
+static void show_friends(FOPDData *data)
+{
+    std::vector<struct friend_info*> v = data->getFriendInfos();
+
+    ImGui::Begin("Players");
+
+    if (ImGui::BeginTable("player_info", 5)) {
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Class", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Map");
+        ImGui::TableSetupColumn("Last update", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableHeadersRow();
+
+        for (struct friend_info *finfo : v) {
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", finfo->name);
+            ImGui::TableNextColumn();
+            ImGui::Text("%s (%02X)", translate_pclass(finfo->pclass), finfo->pclass);
+            ImGui::TableNextColumn();
+            ImGui::Text("%u", finfo->level);
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", translate_map_name(finfo->raw_map));
+            ImGui::TableNextColumn();
+            ImGui::Text("%d", finfo->last_seen.tv_sec);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
+}
+
 void build_gui(void)
 {
     // Uses ImGUI to display some information
@@ -157,15 +191,16 @@ void build_gui(void)
 
     show_parameters(data);
 
+    show_friends(data);
     // ImGui::ShowDemoWindow();
 
     /* Damage statistics */
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("DPS meter");
     ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
-    ImGui::Text("Max dmg    : %d", data->getMaxDmg());
-    ImGui::Text("Max DPS    : %d", data->getMaxDPS());
-    ImGui::Text("Current DPS: %d", data->getDPS());
+    ImGui::Text("Max dmg    : %u", data->getMaxDmg());
+    ImGui::Text("Max DPS    : %u", data->getMaxDPS());
+    ImGui::Text("Current DPS: %u", data->getDPS());
     ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
     ImGui::End();
 

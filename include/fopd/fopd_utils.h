@@ -20,6 +20,16 @@
 #endif
 
 /**
+ * @brief Comparator for maps using char* as keys
+ */
+struct cmp_str {
+    bool operator()(char const *a, char const *b) const
+    {
+        return strcmp(a, b) < 0;
+    }
+};
+
+/**
  * @brief Convert from little endian byte array (of 4 bytes) to uint32_t
  *
  * @param byte_array

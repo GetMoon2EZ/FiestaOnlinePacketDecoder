@@ -1,7 +1,10 @@
 #include "fopd/fopd_data.h"
 
 #include <numeric>
+#include <algorithm>
 #include <queue>
+#include <map>
+#include <vector>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,11 +12,7 @@
 #include <time.h>
 #include <errno.h>
 
-#ifdef _WIN32
-    #include <winsock2.h>
-#else
-    #include <sys/time.h>
-#endif
+#include <winsock2.h>
 
 #include "fopd/fopd_consts.h"
 #include "fopd/fopd_packet.h"
@@ -88,6 +87,46 @@ FOPDData::updateDPS(void)
     this->setDPS(get_dmg_queue_sum(this->dmg_q));
 }
 
+void
+FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct timeval now;
+    struct friend_info *finfo;
+
+    if (gettimeofday(&now, NULL) != 0) {
+        fprintf(stderr, "[ERROR] gettimeofday returned an error: %s\n", strerror(errno));
+        return;
+    }
+
+    for (uint8_t i = 0; i < pkt_friends->num_entry; i++) {
+        finfo = (struct friend_info*) calloc(1, sizeof(*finfo));
+        if (finfo == NULL) {
+            fprintf(stderr, "[ERROR] Memory allocation error\n");
+            return;
+        }
+        finfo->last_seen = now;
+        finfo->level = pkt_friends->players[i].level;
+        finfo->pclass = pkt_friends->players[i].pclass;
+        strncpy(finfo->raw_map, pkt_friends->players[i].raw_map, FO_MAP_NAME_MAX_LEN);
+        finfo->raw_map[FO_MAP_NAME_MAX_LEN] = '\0';
+        strncpy(finfo->name, pkt_friends->players[i].name, FO_PLAYER_NAME_MAX_LEN);
+        finfo->name[FO_PLAYER_NAME_MAX_LEN] = '\0';
+
+        /* Insert in the map */
+        auto old_info = this->friends.find(finfo->name);
+        if (old_info != this->friends.end()) {
+            auto x = std::move(old_info->second);
+            this->friends.erase(old_info);
+            free(x);
+        }
+        this->friends[finfo->name] = finfo;
+    }
+}
+
+// TODO Periodically remove friend informations which are too old (and free memory)
+// void FOPDData::cleanupFriend(void);
+
 void FOPDData::setDPS(uint32_t dps)
 {
     // std::lock_guard<std::mutex> lk(this->lock);
@@ -132,6 +171,27 @@ void FOPDData::trySetMaxDmg(uint32_t damage)
 /***********/
 /* Getters */
 /***********/
+
+bool
+compareByTimestamp(const struct friend_info *a, const struct friend_info *b)
+{
+    struct timeval _ret;
+    return timeval_subtract(a->last_seen, b->last_seen, &_ret) != 0;
+}
+
+std::vector<struct friend_info*>
+FOPDData::getFriendInfos(void)
+{
+    std::vector<struct friend_info*> v;
+
+    std::lock_guard<std::mutex> lk(this->lock);
+    for (auto const& x : this->friends) {
+        v.push_back(x.second);
+    }
+
+    // std::sort(v.begin(), v.end(), compareByTimestamp);
+    return v;
+}
 
 uint32_t FOPDData::getDPS(void)
 {

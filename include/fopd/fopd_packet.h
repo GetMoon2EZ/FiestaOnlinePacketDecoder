@@ -7,10 +7,16 @@
 #include <fopd/fopd_utils.h>
 
 
-#define FO_PACKET_MAX_DATA_LEN  1500
+#define FO_PACKET_MAX_DATA_LEN  1996
 #define FO_PACKET_MIN_LEN       3       /* len on 1 byte, type on 2 bytes */
 #define FO_SPELL_MAX_TARGET_HIT 20      /* No spell can hit more than 20 targets ? */
 #define FO_MAX_POSSIBLE_DAMAGE  1000000000ULL // 1 Billion
+#define FO_PLAYER_NAME_MAX_LEN  16      /* Maximum length for a player name */
+#define FO_PLAYER_NAME_STR_LEN  (FO_PLAYER_NAME_MAX_LEN + 1) /* Maximum length for a player name */
+#define FO_MAP_NAME_MAX_LEN     12      /* Maximum length for a map name */
+#define FO_MAP_NAME_STR_LEN     (FO_MAP_NAME_MAX_LEN + 1)
+#define FO_FRIEND_MAX_PLAYERS   21      /* Maximum number of player info per packet */
+
 
 enum errors {
     INPUT_ERROR = -2,
@@ -24,6 +30,7 @@ enum fopacket_types {
     FOPACKET_ENTITY_INFO =  0x2402,
     FOPACKET_FRIEND_LOGIN = 0x743D,
     FOPACKET_FRIEND_LOGOUT = 0x540A,
+    FOPACKET_FRIEND_FIND =  0x5420,
 };
 
 /* Generic packet */
@@ -87,11 +94,34 @@ PACK(struct fopacket_entity_info {
     uint8_t level;          /* Entity level [1-150]*/
 });
 
+PACK(struct player_info {
+    uint8_t _unknown_1[4];              /* Not known, set for packing */
+    char name[FO_PLAYER_NAME_MAX_LEN];  /* Player name */
+    uint8_t _unknown_2[4];              /* Not known, set for packing */
+    uint8_t pclass;                     /* Player class (see foclass)*/
+    uint8_t level;                      /* Player level */
+    uint8_t _unknown_3[2];              /* Not known, set for packing */
+    char raw_map[FO_MAP_NAME_MAX_LEN];  /* Player raw map name (see fopd_translation.h) */
+    uint8_t _unknown_4[32];             /* Not known, set for packing */
+});
+
+PACK(struct fopacket_friend_find {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint16_t subtype;       /* Packet sub-header (C0 36 for player info ?) */
+    uint8_t num_entry;      /* Number of entries in the following array */
+    uint8_t _unknown_1[1];  /* Not known, set for packing */
+    struct player_info players[FO_FRIEND_MAX_PLAYERS];
+});
+
+void print_packet(const struct fopacket *packet);
 int get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len);
 int parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet);
 int parse_packet_damage(const struct fopacket *packet, struct fopacket_dmg *out);
 int parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_info *out);
+int parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out);
 int handle_damage(struct fopacket *packet);
 int handle_entity_info(struct fopacket *packet);
+int handle_friend_find(struct fopacket *packet);
 
 #endif // __FOPD_PACKETS_H__

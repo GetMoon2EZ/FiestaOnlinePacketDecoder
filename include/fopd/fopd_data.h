@@ -3,10 +3,23 @@
 
 #include <mutex>
 #include <queue>
+#include <map>
+#include <vector>
+#include <string.h>
+#include <winsock2.h>
 
 #include <fopd/fopd_packet.h>
 
 #define ROLLING_AVERAGE_POINT_COUNT     50
+
+
+struct friend_info {
+    struct timeval last_seen;           /* Last time the player was seen */
+    char name[FO_PLAYER_NAME_STR_LEN];  /* Player name */
+    uint8_t pclass;                     /* Player class (see foclass)*/
+    uint8_t level;                      /* Player level */
+    char raw_map[FO_MAP_NAME_STR_LEN];  /* Player raw map name (see fopd_translation.h) */
+};
 
 class FOPDData
 {
@@ -15,6 +28,7 @@ public:
 
     void pushToDamageQueue(struct fopacket_dmg packet_dmg);
     void updateDPS(void);
+    void setFriendInfos(struct fopacket_friend_find *friends);
 
     void setDPS(uint32_t dps);
     void setPing(uint32_t ping);
@@ -22,6 +36,7 @@ public:
     void trySetMaxDmg(uint32_t damage);
     bool setServerIndex(size_t server_index);
 
+    std::vector<struct friend_info*> getFriendInfos(void);
     uint32_t getDPS(void);
     uint32_t getMaxDPS(void);
     uint32_t getMaxDmg(void);
@@ -41,6 +56,7 @@ private:
     uint32_t ping = 0;
     uint32_t target_remaining_health = 0;
     std::queue<fopacket_dmg> dmg_q;
+    std::map<char*,  struct friend_info*, cmp_str> friends;
 
     /* Internally calculated values */
     uint32_t dps = 0;

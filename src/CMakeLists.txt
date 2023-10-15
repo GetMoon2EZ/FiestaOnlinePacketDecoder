@@ -9,6 +9,7 @@ target_sources(
 
     "utils/utils.cpp"
     "utils/data.cpp"
+    "utils/translation.cpp"
 
     "packets/packet.cpp"
 
