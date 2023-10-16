@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <string.h>
+#include <time.h>
 #include <winsock2.h>
 
 #include <fopd/fopd_packet.h>
@@ -14,7 +15,7 @@
 
 
 struct friend_info {
-    struct timeval last_seen;           /* Last time the player was seen */
+    time_t last_seen;                   /* Last time the player was seen */
     char name[FO_PLAYER_NAME_STR_LEN];  /* Player name */
     uint8_t pclass;                     /* Player class (see foclass)*/
     uint8_t level;                      /* Player level */

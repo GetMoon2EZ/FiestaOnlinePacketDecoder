@@ -4,6 +4,7 @@
 #include "fopd/fopd_consts.h"
 #include "fopd/gui_helper.h"
 #include "fopd/fo_ping.h"
+#include "fopd/fopd_utils.h"
 #include "fopd/fopd_translation.h"
 
 #include <d3d12.h>
@@ -151,12 +152,12 @@ static void show_friends(FOPDData *data)
 
     ImGui::Begin("Players");
 
-    if (ImGui::BeginTable("player_info", 5)) {
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Class", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed);
+    if (ImGui::BeginTable("player_info", 5, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit)) {
+        ImGui::TableSetupColumn("Name");
+        ImGui::TableSetupColumn("Class");
+        ImGui::TableSetupColumn("Level");
         ImGui::TableSetupColumn("Map");
-        ImGui::TableSetupColumn("Last update", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Last update");
         ImGui::TableHeadersRow();
 
         if (v.empty()) {
@@ -165,6 +166,10 @@ static void show_friends(FOPDData *data)
         }
 
         for (struct friend_info *finfo : v) {
+            char since[TIME_SINCE_BUFFER_SIZE] = { 0 };
+
+            time_since_str(finfo->last_seen, since);
+
             ImGui::TableNextColumn();
             ImGui::Text("%s", finfo->name);
             ImGui::TableNextColumn();
@@ -174,7 +179,7 @@ static void show_friends(FOPDData *data)
             ImGui::TableNextColumn();
             ImGui::Text("%s", translate_map_name(finfo->raw_map));
             ImGui::TableNextColumn();
-            ImGui::Text("%d", finfo->last_seen.tv_sec);
+            ImGui::Text("%s", since);
         }
 
         ImGui::EndTable();

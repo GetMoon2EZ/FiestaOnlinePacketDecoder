@@ -81,11 +81,11 @@ bool process_packet(PDU& pkt)
         uint8_t *data = payload.data();
         uint32_t data_len = raw.payload_size();
 
-        printf("New packet (%u): ", data_len);
-        for (uint32_t i = 0; i < data_len; i++) {
-            printf("%02X ", data[i]);
-        }
-        printf("\n");
+        // printf("New packet (%u): ", data_len);
+        // for (uint32_t i = 0; i < data_len; i++) {
+        //     printf("%02X ", data[i]);
+        // }
+        // printf("\n");
 
         if (!stash_empty()) {
             /* Collect more data for the stash */

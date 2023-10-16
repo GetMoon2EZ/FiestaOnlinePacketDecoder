@@ -91,13 +91,10 @@ void
 FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
 {
     std::lock_guard<std::mutex> lk(this->lock);
-    struct timeval now;
+    time_t now;
     struct friend_info *finfo;
 
-    if (gettimeofday(&now, NULL) != 0) {
-        fprintf(stderr, "[ERROR] gettimeofday returned an error: %s\n", strerror(errno));
-        return;
-    }
+    now = time(NULL);
 
     for (uint8_t i = 0; i < pkt_friends->num_entry; i++) {
         finfo = (struct friend_info*) calloc(1, sizeof(*finfo));
@@ -175,8 +172,7 @@ void FOPDData::trySetMaxDmg(uint32_t damage)
 bool
 compareByTimestamp(const struct friend_info *a, const struct friend_info *b)
 {
-    struct timeval _ret;
-    return timeval_subtract(a->last_seen, b->last_seen, &_ret) != 0;
+    return a->last_seen > b->last_seen;
 }
 
 std::vector<struct friend_info*>
@@ -189,7 +185,7 @@ FOPDData::getFriendInfos(void)
         v.push_back(x.second);
     }
 
-    // std::sort(v.begin(), v.end(), compareByTimestamp);
+    std::sort(v.begin(), v.end(), compareByTimestamp);
     return v;
 }
 

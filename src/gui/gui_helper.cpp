@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 
 #include <windows.h>
 #include <psapi.h>
@@ -12,6 +13,12 @@
 #define MEGABYTE    (KILOBYTE * 1000)
 #define GIGABYTE    (MEGABYTE * 1000)
 #define TERABYTE    (GIGABYTE * 1000)
+
+#define SECOND      1ULL
+#define MINUTE_S    (SECOND * 60)
+#define HOUR_S      (MINUTE_S * 60)
+#define DAY_S       (HOUR_S * 24)
+
 
 struct MemoryInfo get_memory_info(void)
 {
@@ -43,7 +50,7 @@ struct MemoryInfo get_memory_info(void)
     return info;
 }
 
-void memory_display(uint64_t bytes, char *buf)
+void memory_display(uint64_t bytes, char buf[MEMORY_DISPLAY_BUFFER_SIZE])
 {
     double unit;
     char unit_str[6] = { 0 };
@@ -66,4 +73,27 @@ void memory_display(uint64_t bytes, char *buf)
     }
 
     snprintf(buf, MEMORY_DISPLAY_BUFFER_SIZE, "%.2f%s", bytes / unit, unit_str);
+}
+
+void
+time_since_str(time_t time_since, char buf[TIME_SINCE_BUFFER_SIZE])
+{
+    time_t diff;
+
+    diff = time(NULL) - time_since;
+
+    if (diff < 0) {
+        diff *= -1;
+    }
+
+    if (diff < MINUTE_S) {
+        snprintf(buf, TIME_SINCE_BUFFER_SIZE, "%llds", diff);
+    } else if (diff < HOUR_S) {
+        snprintf(buf, TIME_SINCE_BUFFER_SIZE, "%lldm%llds", diff / MINUTE_S, diff % MINUTE_S);
+    } else if (diff < DAY_S) {
+        snprintf(buf, TIME_SINCE_BUFFER_SIZE, "%lldh%lldm", diff / HOUR_S, (diff % HOUR_S) / MINUTE_S);
+    } else {
+        time_t days = diff / DAY_S;
+        snprintf(buf, TIME_SINCE_BUFFER_SIZE, "%lld day%s", days, days > 1 ? "s" : "");
+    }
 }
