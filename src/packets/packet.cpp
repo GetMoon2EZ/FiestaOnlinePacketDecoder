@@ -20,7 +20,7 @@ print_packet(const struct fopacket *packet)
         return;
     }
 
-    for (int i = 0; i < packet->len - sizeof(packet->type); i++) {
+    for (uint16_t i = 0; i < (packet->len - sizeof(packet->type)); i++) {
         printf("%02X ", packet->data[i]);
     }
     printf("\n");
@@ -57,7 +57,7 @@ get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len)
 int
 parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet)
 {
-    uint8_t tmp[2000] = { 0 };
+    uint8_t tmp[FO_PACKET_MAX_DATA_LEN + 4] = { 0 };
     uint32_t tmp_size = buf_size;
 
     if (buf_size < FO_PACKET_MIN_LEN || buf_size > sizeof(*packet)) {
@@ -75,7 +75,7 @@ parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet)
         tmp_size++;
     } else {
         /* Ignore the first 0x00 byte and shift the buffer */
-        memcpy(tmp, buf + 1, buf_size);
+        memcpy(tmp, buf + 1, buf_size - 1);
         tmp_size--;
     }
     memcpy(packet, tmp, tmp_size);
@@ -173,8 +173,8 @@ parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_i
 int
 parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out)
 {
-    uint32_t noplayer_len;
-    uint8_t player_cnt;
+    uint16_t noplayer_len;
+    uint16_t player_cnt;
 
     memset(out, 0, sizeof(*out));
 
@@ -182,8 +182,8 @@ parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_f
         return -2;
     }
 
-    noplayer_len = sizeof(*out) - sizeof(out->len) - sizeof(struct player_info) * FO_FRIEND_MAX_PLAYERS;
-    player_cnt = (uint8_t) (packet->len - noplayer_len) / sizeof(struct player_info);
+    noplayer_len = sizeof(*out) - sizeof(out->len) - sizeof(out->players);
+    player_cnt = (packet->len - noplayer_len) / sizeof(struct player_info);
 
     if (
         packet->len > out->len - sizeof(out->len) ||

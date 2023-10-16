@@ -159,6 +159,11 @@ static void show_friends(FOPDData *data)
         ImGui::TableSetupColumn("Last update", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
 
+        if (v.empty()) {
+            ImGui::TableNextColumn();
+            ImGui::Text("Click on \"Find friends\"");
+        }
+
         for (struct friend_info *finfo : v) {
             ImGui::TableNextColumn();
             ImGui::Text("%s", finfo->name);

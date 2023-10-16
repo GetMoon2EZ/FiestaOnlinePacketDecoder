@@ -11,6 +11,67 @@ using namespace Tins;
 
 static Sniffer configure_sniffer(size_t server);
 
+/* Simple stashing mechanism to allow fragmented packet reconstruction */
+static int stash_init(uint32_t total_len);
+static void stash_clear(void);
+static int stash_push(const uint8_t *buf, uint32_t buf_size);
+static bool stash_full(void);
+static bool stash_empty(void);
+
+#define TCP_STASH_SIZE      65535
+#define TCP_STASH_MIN_LEN   1420
+
+uint8_t tcp_stash[TCP_STASH_SIZE];
+uint16_t stashed_len = 0;
+uint16_t stash_expected_len = 0;
+
+
+void
+process_payloads(const uint8_t *data, uint32_t data_len)
+{
+    uint32_t current_pos = 0;
+    uint32_t payload_len = 0;
+    struct fopacket packet;
+
+    while ((current_pos < data_len) && (get_payload_len(&data[current_pos], data_len - current_pos, &payload_len) != 1)) {
+        if (payload_len > data_len) {
+            /* Wait for next fragment */
+            if (stash_init(payload_len) == 0) {
+                stash_push(data, data_len);
+            }
+            break;
+        }
+
+        if (payload_len == 0) {
+            fprintf(stderr, "[ERROR] Empty payload\n");
+            break;
+        }
+
+        if (parse_packet(&data[current_pos], payload_len, &packet) != 0) {
+            fprintf(stderr, "[ERROR] Fail to parse packet\n");
+            break;
+        }
+
+        switch (packet.type) {
+            case FOPACKET_DMG_AA:
+            case FOPACKET_DMG_SPELL:
+                handle_damage(&packet);
+                break;
+            case FOPACKET_ENTITY_INFO:
+                handle_entity_info(&packet);
+                break;
+            case FOPACKET_FRIEND_FIND:
+                handle_friend_find(&packet);
+                break;
+            default:
+                /* Nothing to do */
+                // print_packet(&packet);
+                break;
+        }
+        current_pos += payload_len;
+    }
+}
+
 bool process_packet(PDU& pkt)
 {
     try {
@@ -19,41 +80,27 @@ bool process_packet(PDU& pkt)
         auto payload = raw.payload();
         uint8_t *data = payload.data();
         uint32_t data_len = raw.payload_size();
-        uint32_t current_pos = 0;
-        uint32_t payload_len = 0;
-        struct fopacket packet;
 
-        while (current_pos < data_len && get_payload_len(&data[current_pos], data_len - current_pos, &payload_len) != 1) {
-            if (payload_len == 0) {
-                fprintf(stderr, "[ERROR] Empty payload\n");
-                break;
-            }
-
-            if (parse_packet(&data[current_pos], payload_len, &packet) != 0) {
-                fprintf(stderr, "[ERROR] Fail to parse packet\n");
-                break;
-            }
-
-            switch (packet.type) {
-                case FOPACKET_DMG_AA:
-                case FOPACKET_DMG_SPELL:
-                    handle_damage(&packet);
-                    break;
-                case FOPACKET_ENTITY_INFO:
-                    handle_entity_info(&packet);
-                    break;
-                case FOPACKET_FRIEND_FIND:
-                    handle_friend_find(&packet);
-                    break;
-                default:
-                    /* Nothing to do */
-                    print_packet(&packet);
-                    break;
-            }
-            current_pos += payload_len;
+        printf("New packet (%u): ", data_len);
+        for (uint32_t i = 0; i < data_len; i++) {
+            printf("%02X ", data[i]);
         }
-    }
-    catch (pdu_not_found error) {
+        printf("\n");
+
+        if (!stash_empty()) {
+            /* Collect more data for the stash */
+            stash_push(data, data_len);
+            data = tcp_stash;
+            data_len = stashed_len;
+        }
+
+        if (stash_full()) {
+            process_payloads(data, data_len);
+            if (data == tcp_stash) {
+                stash_clear();
+            }
+        }
+    } catch (pdu_not_found error) {
         return false;
     }
     return true;
@@ -101,4 +148,51 @@ static Sniffer configure_sniffer(size_t server)
     sniffer.set_pcap_sniffing_method(pcap_dispatch);
 
     return sniffer;
+}
+
+static int
+stash_init(uint32_t total_len)
+{
+    stash_clear();
+
+    if (total_len > TCP_STASH_SIZE || total_len < TCP_STASH_MIN_LEN) {
+        return -1;
+    }
+
+    stash_expected_len = total_len;
+    return 0;
+}
+
+static void
+stash_clear(void)
+{
+    stashed_len = 0;
+    stash_expected_len = 0;
+    memset(tcp_stash, 0, TCP_STASH_SIZE);
+}
+
+static int
+stash_push(const uint8_t *buf, uint32_t buf_size)
+{
+    if (stashed_len + buf_size > stash_expected_len) {
+        /* Overflow */
+        return -1;
+    }
+
+    memcpy(&tcp_stash[stashed_len], buf, buf_size);
+    stashed_len += buf_size;
+
+    return 0;
+}
+
+static bool
+stash_full(void)
+{
+    return stash_expected_len == stashed_len;
+}
+
+static bool
+stash_empty(void)
+{
+    return stash_expected_len == 0;
 }

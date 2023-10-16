@@ -7,7 +7,7 @@
 #include <fopd/fopd_utils.h>
 
 
-#define FO_PACKET_MAX_DATA_LEN  1996
+#define FO_PACKET_MAX_DATA_LEN  4096
 #define FO_PACKET_MIN_LEN       3       /* len on 1 byte, type on 2 bytes */
 #define FO_SPELL_MAX_TARGET_HIT 20      /* No spell can hit more than 20 targets ? */
 #define FO_MAX_POSSIBLE_DAMAGE  1000000000ULL // 1 Billion
@@ -15,7 +15,7 @@
 #define FO_PLAYER_NAME_STR_LEN  (FO_PLAYER_NAME_MAX_LEN + 1) /* Maximum length for a player name */
 #define FO_MAP_NAME_MAX_LEN     12      /* Maximum length for a map name */
 #define FO_MAP_NAME_STR_LEN     (FO_MAP_NAME_MAX_LEN + 1)
-#define FO_FRIEND_MAX_PLAYERS   21      /* Maximum number of player info per packet */
+#define FO_FRIEND_MAX_PLAYERS   40      /* Maximum number of player info per packet */
 
 
 enum errors {
