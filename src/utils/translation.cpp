@@ -175,28 +175,38 @@ const std::map<const char *, const char *, cmp_str> tr_map_names_fr {
 };
 
 enum foclass {
+    FOCLASS_FG = 0x01,  /* Fighter */
     FOCLASS_GL = 0x04,  /* Gladiator */
     FOCLASS_KN = 0x05,  /* Knight */
+    FOCLASS_CL = 0x06,  /* Cleric */
     FOCLASS_HK = 0x09,  /* Holy knight */
     FOCLASS_GN = 0x0A,  /* Guardian */
+    FOCLASS_AR = 0x0B,  /* Archer */
     FOCLASS_SP = 0x0E,  /* Specter */
     FOCLASS_RG = 0x0F,  /* Ranger */
+    FOCLASS_MG = 0x10,  /* Mage */
     FOCLASS_WL = 0x13,  /* Warlock */
     FOCLASS_WZ = 0x14,  /* Wizard */
+    FOCLASS_TR = 0x15,  /* Trickster*/
     FOCLASS_SS = 0x18,  /* Sharpshooter */
     FOCLASS_RP = 0x19,  /* Reaper */
     FOCLASS_TM = 0x1B,  /* Templar */
 };
 
 const std::map<uint8_t, const char*> tr_pclass_na {
+    { FOCLASS_FG, "Fighter" },
     { FOCLASS_GL, "Gladiator" },
     { FOCLASS_KN, "Knight" },
+    { FOCLASS_CL, "Cleric" },
     { FOCLASS_HK, "Holy Knight" },
     { FOCLASS_GN, "Guardian" },
+    { FOCLASS_AR, "Archer" },
     { FOCLASS_SP, "Specter" },
     { FOCLASS_RG, "Ranger" },
+    { FOCLASS_MG, "Mage" },
     { FOCLASS_WL, "Warlock" },
     { FOCLASS_WZ, "Wizard" },
+    { FOCLASS_TR, "Trickster" },
     { FOCLASS_SS, "Sharpshooter" },
     { FOCLASS_RP, "Reaper" },
     { FOCLASS_TM, "Templar" }
