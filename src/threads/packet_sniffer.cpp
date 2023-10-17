@@ -15,11 +15,11 @@ static Sniffer configure_sniffer(size_t server);
 static int stash_init(uint32_t total_len);
 static void stash_clear(void);
 static int stash_push(const uint8_t *buf, uint32_t buf_size);
+static uint16_t stash_remaining_space(void);
 static bool stash_full(void);
 static bool stash_empty(void);
 
 #define TCP_STASH_SIZE      65535
-#define TCP_STASH_MIN_LEN   1420
 
 uint8_t tcp_stash[TCP_STASH_SIZE];
 uint16_t stashed_len = 0;
@@ -32,12 +32,13 @@ process_payloads(const uint8_t *data, uint32_t data_len)
     uint32_t current_pos = 0;
     uint32_t payload_len = 0;
     struct fopacket packet;
+    int ret;
 
     while ((current_pos < data_len) && (get_payload_len(&data[current_pos], data_len - current_pos, &payload_len) != 1)) {
-        if (payload_len > data_len) {
+        if (payload_len > (data_len - current_pos)) {
             /* Wait for next fragment */
-            if (stash_init(payload_len) == 0) {
-                stash_push(data, data_len);
+            if (stash_init(payload_len) != 0 || stash_push(&data[current_pos], data_len - current_pos) != 0) {
+                stash_clear();
             }
             break;
         }
@@ -47,9 +48,11 @@ process_payloads(const uint8_t *data, uint32_t data_len)
             break;
         }
 
-        if (parse_packet(&data[current_pos], payload_len, &packet) != 0) {
+        ret = parse_packet(&data[current_pos], payload_len, &packet);
+        current_pos += payload_len;
+        if (ret != 0) {
             fprintf(stderr, "[ERROR] Fail to parse packet\n");
-            break;
+            continue;
         }
 
         switch (packet.type) {
@@ -68,7 +71,6 @@ process_payloads(const uint8_t *data, uint32_t data_len)
                 // print_packet(&packet);
                 break;
         }
-        current_pos += payload_len;
     }
 }
 
@@ -87,19 +89,31 @@ bool process_packet(PDU& pkt)
         // }
         // printf("\n");
 
+        uint32_t to_stash;
+
         if (!stash_empty()) {
             /* Collect more data for the stash */
-            stash_push(data, data_len);
-            data = tcp_stash;
-            data_len = stashed_len;
-        }
+            to_stash = (std::min)(data_len, (uint32_t) stash_remaining_space());
+            stash_push(data, to_stash);
 
-        if (stash_full()) {
-            process_payloads(data, data_len);
-            if (data == tcp_stash) {
+            if (stash_full()) {
+                process_payloads(tcp_stash, (uint32_t) stashed_len);
                 stash_clear();
             }
+
+            /* If we have not processed the full data */
+            if (to_stash != data_len) {
+                /* Offset the data for processing */
+                data += to_stash;
+                data_len -= to_stash;
+            } else {
+                /* Nothing more to process */
+                return true;
+            }
         }
+
+        process_payloads(data, data_len);
+
     } catch (pdu_not_found error) {
         return false;
     }
@@ -135,7 +149,7 @@ static Sniffer configure_sniffer(size_t server)
 
     // Configure sniffer
     config.set_promisc_mode(true);
-    snprintf(filter, sizeof(filter), "ip src %s", fo_servers[server].address);
+    snprintf(filter, sizeof(filter), "ip src %s and tcp", fo_servers[server].address);
     config.set_filter(filter);
 
     // Only inbound packets
@@ -155,7 +169,8 @@ stash_init(uint32_t total_len)
 {
     stash_clear();
 
-    if (total_len > TCP_STASH_SIZE || total_len < TCP_STASH_MIN_LEN) {
+    if (total_len > TCP_STASH_SIZE) {
+        fprintf(stderr, "[ERROR] stash_init failed: %d > %d\n", total_len, TCP_STASH_SIZE);
         return -1;
     }
 
@@ -184,6 +199,13 @@ stash_push(const uint8_t *buf, uint32_t buf_size)
 
     return 0;
 }
+
+static uint16_t
+stash_remaining_space(void)
+{
+    return stash_expected_len - stashed_len;
+}
+
 
 static bool
 stash_full(void)
