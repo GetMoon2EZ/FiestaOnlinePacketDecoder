@@ -173,7 +173,7 @@ static void show_friends(FOPDData *data)
             ImGui::TableNextColumn();
             ImGui::Text("%s", finfo->name);
             ImGui::TableNextColumn();
-            ImGui::Text("%s (%02X)", translate_pclass(finfo->pclass), finfo->pclass);
+            ImGui::Text("%s", translate_pclass(finfo->pclass));
             ImGui::TableNextColumn();
             ImGui::Text("%u", finfo->level);
             ImGui::TableNextColumn();
