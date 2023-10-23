@@ -10,6 +10,7 @@
 #include <winsock2.h>
 
 #include <fopd/fopd_packet.h>
+#include <fopd/data_stream.h>
 
 #define ROLLING_AVERAGE_POINT_COUNT     50
 
