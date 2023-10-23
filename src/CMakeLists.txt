@@ -10,8 +10,10 @@ target_sources(
     "utils/utils.cpp"
     "utils/data.cpp"
     "utils/translation.cpp"
+    "utils/data_stream.cpp"
 
     "packets/packet.cpp"
+    "packets/network_stash.cpp"
 
     "threads/packet_sniffer.cpp"
     "threads/timer.cpp"

@@ -31,7 +31,7 @@ int
 stash_initialize(network_stash *stash, uint32_t total_len)
 {
     stash_clear(stash);
-    printf("Stash init: %u\n", total_len);
+    // printf("Stash init: %u\n", total_len);
     if (total_len == 0 || total_len > MAX_STASH_SIZE) {
         fprintf(stderr, "[ERROR] stash_init failed: %d > %d\n", total_len, MAX_STASH_SIZE);
         return -1;
@@ -52,7 +52,7 @@ stash_clear(network_stash *stash)
 int
 stash_push(network_stash *stash, const uint8_t *buf, uint32_t buf_size)
 {
-    printf("Stash push: +%u => %u/%u\n", buf_size, stash->data_len + buf_size, stash->expected_len);
+    // printf("Stash push: +%u => %u/%u\n", buf_size, stash->data_len + buf_size, stash->expected_len);
 
     if (
         buf_size > UINT16_MAX ||

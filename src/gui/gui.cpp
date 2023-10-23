@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <iostream>
+#include <algorithm>
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -188,6 +189,58 @@ static void show_friends(FOPDData *data)
     ImGui::End();
 }
 
+struct sort_damages {
+    bool operator()(const std::pair<uint16_t, uint32_t> &left, const std::pair<uint16_t, uint32_t> &right) {
+        return left.second > right.second;
+    }
+};
+
+
+void show_dps_table(FOPDData *data)
+{
+    /* Directly ask for what we need */
+    std::map<uint16_t, uint32_t> damages = data->getDPSPerPlayer();
+    std::map<uint16_t, double> averages = data->getDPSAveragePerPlayer();
+    std::map<uint16_t, uint32_t> maxima = data->getMaxDmgPerPlayer();
+    std::vector<std::pair<uint16_t, uint32_t>> damages_sorted(damages.begin(), damages.end());
+    std::sort(damages_sorted.begin(), damages_sorted.end(), sort_damages());
+
+    ImGui::Begin("DPS meter");
+
+    // ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+    ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
+    ImGui::Text("Max dmg    : %u", data->getMaxDmg());
+    ImGui::Text("Max DPS    : %u", data->getMaxDPS());
+    ImGui::Text("Current DPS: %u", data->getDPS());
+    ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
+
+    if (ImGui::BeginTable("dps_info", 5, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit)) {
+        ImGui::TableSetupColumn("ID");
+        ImGui::TableSetupColumn("Name");
+        ImGui::TableSetupColumn("Current DPS");
+        ImGui::TableSetupColumn("Average DPS");
+        ImGui::TableSetupColumn("Max damage");
+        ImGui::TableHeadersRow();
+
+        for (auto const& x : damages_sorted) {
+            ImGui::TableNextColumn();
+            ImGui::Text("%u", x.first);
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", data->getPlayerName(x.first));
+            ImGui::TableNextColumn();
+            ImGui::Text("%u", x.second);
+            ImGui::TableNextColumn();
+            ImGui::Text("%0.2f", averages[x.first]);
+            ImGui::TableNextColumn();
+            ImGui::Text("%u", maxima[x.first]);
+        }
+
+        ImGui::EndTable();
+    }
+    ImGui::End();
+}
+
+
 void build_gui(void)
 {
     // Uses ImGUI to display some information
@@ -204,15 +257,7 @@ void build_gui(void)
     show_friends(data);
     // ImGui::ShowDemoWindow();
 
-    /* Damage statistics */
-    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-    ImGui::Begin("DPS meter");
-    ImGui::Text("Target health: %d", data->getTargetRemainingHealth());
-    ImGui::Text("Max dmg    : %u", data->getMaxDmg());
-    ImGui::Text("Max DPS    : %u", data->getMaxDPS());
-    ImGui::Text("Current DPS: %u", data->getDPS());
-    ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
-    ImGui::End();
+    show_dps_table(data);
 
     plot_dps_over_time(data);
 }

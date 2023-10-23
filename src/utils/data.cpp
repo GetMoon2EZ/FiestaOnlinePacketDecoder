@@ -17,6 +17,7 @@
 #include "fopd/fopd_consts.h"
 #include "fopd/fopd_packet.h"
 #include "fopd/fopd_utils.h"
+#include "fopd/data_stream.h"
 
 
 static FOPDData *instance = NULL;
@@ -83,6 +84,8 @@ FOPDData::updateDPS(void)
     }
 
     /* Sum damage of from the last second */
+    this->updateDPSPerPlayer();
+    this->updateDPSAveragePerPlayer();
     this->trySetMaxDmg(get_dmg_queue_max(this->dmg_q));
     this->setDPS(get_dmg_queue_sum(this->dmg_q));
 }
@@ -123,6 +126,55 @@ FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
 
 // TODO Periodically remove friend informations which are too old (and free memory)
 // void FOPDData::cleanupFriend(void);
+
+void
+FOPDData::setPlayerID(struct fopacket_player_init *pkt_player)
+{
+    char *player_name;
+    auto old_player = this->player_ids.find(pkt_player->player_id);
+    uint16_t old_id;
+    bool had_old_id;
+
+    /* Remove the player which used to have this ID */
+    if (old_player != this->player_ids.end()) {
+        if (strncmp(old_player->second, pkt_player->name, FO_PLAYER_NAME_MAX_LEN) == 0) {
+            return;
+        }
+        /* Free old player's name memory */
+        auto old_name = std::move(old_player->second);
+        this->player_ids.erase(old_player);
+        free(old_name);
+    }
+
+    /* Remove the old ID for this player */
+    /* This requires a reverse search but should not be done very often */
+    had_old_id = false;
+    for (auto it = this->player_ids.begin(); it != this->player_ids.end(); ++it) {
+        if (strncmp(it->second, pkt_player->name, FO_PLAYER_NAME_MAX_LEN) == 0) {
+            old_id = it->first;
+            had_old_id = true;
+        }
+    }
+
+    if (had_old_id) {
+        auto old_id_p = this->player_ids.find(old_id);
+        auto x = std::move(old_id_p->second);
+        this->player_ids.erase(old_id_p);
+        free(x);
+    }
+
+    /* Insert the player in the map */
+    player_name = (char *) calloc(FO_PLAYER_NAME_STR_LEN, sizeof(*player_name));
+    if (player_name == NULL) {
+        fprintf(stderr, "[ERROR] Memory allocation error\n");
+        return;
+    }
+
+    strncpy(player_name, pkt_player->name, FO_PLAYER_NAME_MAX_LEN);
+    player_name[FO_PLAYER_NAME_MAX_LEN] = '\0';
+    this->player_ids[pkt_player->player_id] = player_name;
+    fprintf(stderr, "Saved player: %s (%u)\n", player_name, pkt_player->player_id);
+}
 
 void FOPDData::setDPS(uint32_t dps)
 {
@@ -189,10 +241,48 @@ FOPDData::getFriendInfos(void)
     return v;
 }
 
+char *
+FOPDData::getPlayerName(uint16_t player_id)
+{
+    auto player = this->player_ids.find(player_id);
+
+    if (player == this->player_ids.end()) {
+        return "Unknown";
+    }
+
+    return player->second;
+}
+
 uint32_t FOPDData::getDPS(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     return this->dps;
+}
+
+std::map<uint16_t, double>
+FOPDData::getDPSAveragePerPlayer(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    std::map<uint16_t, double> ret;
+
+    for (auto const &x: this->avg_pp) {
+        ret[x.first] = x.second.avg;
+    }
+    return ret;
+}
+
+std::map<uint16_t, uint32_t>
+FOPDData::getDPSPerPlayer(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    return this->dps_pp;
+}
+
+std::map<uint16_t, uint32_t>
+FOPDData::getMaxDmgPerPlayer(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    return this->max_pp;
 }
 
 uint32_t FOPDData::getMaxDPS(void)
@@ -223,7 +313,7 @@ uint32_t FOPDData::getTargetRemainingHealth(void)
 double FOPDData::getDPSAverage(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
-    return this->average_dps;
+    return this->average_dps.avg;
 }
 
 double FOPDData::getDPSRollingAverage(void)
@@ -249,14 +339,76 @@ size_t FOPDData::getServerIndex(void)
 
 void FOPDData::updateDPSAverage(void)
 {
-    // a = a + ( v - a ) / (n + 1)
-    this->average_dps = this->average_dps + ((double) this->dps - this->average_dps) / (double) (++this->average_dps_n);
+    data_stream_push(&this->average_dps, this->dps);
 }
 
 void FOPDData::updateDPSRollingAverage(void)
 {
     this->rolling_average_arr[this->rolling_average_next] = this->dps;
     this->rolling_average_next = (this->rolling_average_next + 1) % ROLLING_AVERAGE_POINT_COUNT;
+}
+
+void
+FOPDData::updateDPSPerPlayer(void)
+{
+    std::queue<struct fopacket_dmg> copy_q = this->dmg_q;
+
+    /* Reset previous DPS, it will be recalculated now */
+    for (auto const &x: this->dps_pp) {
+        this->dps_pp[x.first] = 0;
+    }
+
+    while (!copy_q.empty()) {
+        struct fopacket_dmg pkt_dmg = copy_q.front();
+        uint16_t origin_id = pkt_dmg.origin_id;
+        uint32_t max_dmg = 0;
+
+        /* Initialize at 0 */
+        auto x_dps = this->dps_pp.find(origin_id);
+        if (x_dps == this->dps_pp.end()) {
+            this->dps_pp[origin_id] = 0;
+        }
+
+        for (uint8_t i = 0; i < pkt_dmg.hit_cnt; i++) {
+            this->dps_pp[origin_id] += pkt_dmg.dinfo[i].inflicted_dmg;
+
+            if (pkt_dmg.dinfo[i].inflicted_dmg > max_dmg) {
+                max_dmg = pkt_dmg.dinfo[i].inflicted_dmg;
+            }
+        }
+
+        /* Update the max damage for this player */
+        auto x_max = this->max_pp.find(origin_id);
+        if (x_max == this->max_pp.end()) {
+            this->max_pp[origin_id] = max_dmg;
+        } else if (this->max_pp[origin_id] < max_dmg) {
+            this->max_pp[origin_id] = max_dmg;
+        }
+
+        copy_q.pop();
+    }
+}
+
+void
+FOPDData::updateDPSAveragePerPlayer(void)
+{
+    for (const auto &player_dps: this->dps_pp) {
+        uint32_t dps = 0;
+        uint16_t player_id = player_dps.first;
+
+        /* Find current DPS of the player */
+        // auto x_dps = this->dps_pp.find(player_id);
+        // if (x_dps != this->dps_pp.end()) {
+        //     dps = this->dps_pp[player_id];
+        // }
+
+        /* Find the recorded average DPS for the player */
+        auto x_avg = this->avg_pp.find(player_id);
+        if (x_avg == this->avg_pp.end()) {
+            this->avg_pp[player_id] = DATA_STREAM_INIT;
+        }
+        data_stream_push(&this->avg_pp[player_id], player_dps.second);
+    }
 }
 
 /********************/

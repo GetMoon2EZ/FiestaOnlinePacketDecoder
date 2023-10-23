@@ -29,17 +29,29 @@ public:
     static FOPDData *getInstance(void);
 
     void pushToDamageQueue(struct fopacket_dmg packet_dmg);
+    /**
+     * @brief Update overall DPS based on the current state of the damage queue
+     */
     void updateDPS(void);
-    void setFriendInfos(struct fopacket_friend_find *friends);
 
+    /**
+     * @brief Set (or update) the "Find friends" information internally
+     *
+     * @param friends Friend find packet received from the server
+     */
+    void setFriendInfos(struct fopacket_friend_find *friends);
+    void setPlayerID(struct fopacket_player_init *player);
     void setDPS(uint32_t dps);
     void setPing(uint32_t ping);
     void setTargetRemainingHealth(uint32_t target_health);
-    void trySetMaxDmg(uint32_t damage);
     bool setServerIndex(size_t server_index);
 
     std::vector<struct friend_info*> getFriendInfos(void);
+    char *getPlayerName(uint16_t player_id);
     uint32_t getDPS(void);
+    std::map<uint16_t, double> FOPDData::getDPSAveragePerPlayer(void);
+    std::map<uint16_t, uint32_t> FOPDData::getDPSPerPlayer(void);
+    std::map<uint16_t, uint32_t> FOPDData::getMaxDmgPerPlayer(void);
     uint32_t getMaxDPS(void);
     uint32_t getMaxDmg(void);
     uint32_t getPing(void);
@@ -55,17 +67,19 @@ private:
     std::mutex lock;
 
     /* Data gathered by other sniffer and ping threads */
-    uint32_t ping = 0;
-    uint32_t target_remaining_health = 0;
-    std::queue<fopacket_dmg> dmg_q;
-    std::map<char*,  struct friend_info*, cmp_str> friends;
+    uint32_t ping = 0;                      /* Current server ping latency in ms */
+    uint32_t target_remaining_health = 0;   /* Current target remaining HP */
+    std::queue<struct fopacket_dmg> dmg_q;  /* Queue to store damage packets to */
+    std::map<char*,  struct friend_info*, cmp_str> friends; /* "Find friends" information mapped by player name */
+    std::map<uint16_t, char *> player_ids;          /* Map from player ID to player name */
+    std::map<uint16_t, uint32_t> dps_pp;            /* Map from player ID to current DPS */
+    std::map<uint16_t, struct data_stream> avg_pp;  /* Map from player ID to average DPS */
+    std::map<uint16_t, uint32_t> max_pp;            /* Map from player ID to max damage */
 
-    /* Internally calculated values */
     uint32_t dps = 0;
     uint32_t max_dps = 0;
     uint32_t max_dmg = 0;
-    double average_dps = 0;
-    uint32_t average_dps_n = 0;
+    struct data_stream average_dps = DATA_STREAM_INIT;
     uint32_t rolling_average_arr[ROLLING_AVERAGE_POINT_COUNT] = { 0 };
     uint32_t rolling_average_next = 0;
 
@@ -73,8 +87,37 @@ private:
     size_t server_index = 0;
 
     FOPDData(void);
+
+    /**
+     * @brief Attempt to set damage as the new maximum damage recorded.
+     *
+     * @param damage Damage that may become the max damage ever recorded
+     */
+    void trySetMaxDmg(uint32_t damage);
+
+    /**
+     * @brief Update the DPS average based on the current DPS, this function
+     * should be called at regular intervals.
+     */
     void updateDPSAverage(void);
+
+    /**
+     * @brief Update the DPS rolling average based on the current DPS.
+     */
     void updateDPSRollingAverage(void);
+
+    /**
+     * @brief Update the DPS of each player based on the current state of the
+     * damage queue.
+     */
+    void updateDPSPerPlayer(void);
+
+    /**
+     * @brief Update the average DPS of each player based on the previous DPS
+     * average and the current DPS per player.
+     */
+    void updateDPSAveragePerPlayer(void);
+
 };
 
 #endif // __FOPD_DATA_H__

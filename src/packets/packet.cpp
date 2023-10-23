@@ -61,7 +61,6 @@ parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet)
     uint32_t tmp_size = buf_size;
 
     if (buf_size < FO_PACKET_MIN_LEN || buf_size > sizeof(*packet)) {
-        printf("buf_size = %u\n", buf_size);
         fprintf(stderr, "[ERROR] Invalid input\n");
         return -1;
     }
@@ -171,6 +170,36 @@ parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_i
 }
 
 int
+parse_packet_player_init(const struct fopacket *packet, struct fopacket_player_init *out)
+{
+    if (packet->type != FOPACKET_PLAYER_INIT) {
+        return -2;
+    }
+
+    if (packet->len != sizeof(*out) - sizeof(out->len)) {
+        return -1;
+    }
+
+    memcpy(out, packet, sizeof(*out));
+    return 0;
+}
+
+int
+parse_packet_player_init(const struct fopacket *packet, struct fopacket_assign_id *out)
+{
+    if (packet->type != FOPACKET_ASSIGN_ID) {
+        return -2;
+    }
+
+    if (packet->len != sizeof(*out) - sizeof(out->len)) {
+        return -1;
+    }
+
+    memcpy(out, packet, sizeof(*out));
+    return 0;
+}
+
+int
 parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out)
 {
     uint16_t noplayer_len;
@@ -207,14 +236,15 @@ handle_damage(struct fopacket *packet)
 
     ret = parse_packet_damage(packet, &packet_dmg);
     if (ret != 0) {
-        printf("Damage parsing error\n");
+        fprintf(stderr, "Damage parsing error\n");
         return ret;
     }
 
     for (uint8_t i = 0; i < packet_dmg.hit_cnt; i++) {
         printf(
-            "[DEBUG] origin ID: %u\ttarget ID: %u\ttarget HP: %lu\tdmg done: %lu\n",
+            "[DEBUG] origin ID: %u (%s)\ttarget ID: %u\ttarget HP: %lu\tdmg done: %lu\n",
             packet_dmg.origin_id,
+            fopd_data->getPlayerName(packet_dmg.origin_id),
             packet_dmg.dinfo[i].target_id,
             packet_dmg.dinfo[i].remaining_hp,
             packet_dmg.dinfo[i].inflicted_dmg
@@ -237,6 +267,47 @@ handle_entity_info(struct fopacket *packet)
     }
 
     // Do stuff...
+    return 0;
+}
+
+int
+handle_player_init(struct fopacket *packet)
+{
+    int ret;
+    struct fopacket_player_init packet_player;
+    FOPDData *fopd_data = FOPDData::getInstance();
+
+    ret = parse_packet_player_init(packet, &packet_player);
+    if (ret != 0) {
+        fprintf(stderr, "[ERROR] Fail to parse player init packet\n");
+        print_packet(packet);
+        return ret;
+    }
+
+    fopd_data->setPlayerID(&packet_player);
+
+    return 0;
+}
+
+int
+handle_assign_id(struct fopacket *packet)
+{
+    int ret;
+    struct fopacket_assign_id id_packet;
+    struct fopacket_player_init packet_player;
+    FOPDData *fopd_data = FOPDData::getInstance();
+
+    ret = parse_packet_player_init(packet, &id_packet);
+    if (ret != 0) {
+        fprintf(stderr, "[ERROR] Fail to parse player assign id packet\n");
+        print_packet(packet);
+        return ret;
+    }
+
+    strncpy(packet_player.name, "Me :)", FO_PLAYER_NAME_MAX_LEN);
+    packet_player.player_id = id_packet.player_id;
+    fopd_data->setPlayerID(&packet_player);
+
     return 0;
 }
 

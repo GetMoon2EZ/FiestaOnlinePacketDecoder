@@ -7,7 +7,7 @@
 #include <fopd/fopd_utils.h>
 
 
-#define FO_PACKET_MAX_DATA_LEN  4096
+#define FO_PACKET_MAX_DATA_LEN  65535
 #define FO_PACKET_MIN_LEN       3       /* len on 1 byte, type on 2 bytes */
 #define FO_SPELL_MAX_TARGET_HIT 20      /* No spell can hit more than 20 targets ? */
 #define FO_MAX_POSSIBLE_DAMAGE  1000000000ULL // 1 Billion
@@ -25,12 +25,15 @@ enum errors {
 };
 
 enum fopacket_types {
-    FOPACKET_DMG_AA =       0x2448,
-    FOPACKET_DMG_SPELL =    0x2452,
-    FOPACKET_ENTITY_INFO =  0x2402,
-    FOPACKET_FRIEND_LOGIN = 0x743D,
-    FOPACKET_FRIEND_LOGOUT = 0x540A,
-    FOPACKET_FRIEND_FIND =  0x5420,
+    FOPACKET_DMG_AA =           0x2448,
+    FOPACKET_DMG_SPELL =        0x2452,
+    FOPACKET_ENTITY_INFO =      0x2402,
+    FOPACKET_FRIEND_LOGIN =     0x743D,
+    FOPACKET_FRIEND_LOGOUT =    0x540A,
+    FOPACKET_FRIEND_FIND =      0x5420,
+    FOPACKET_PLAYER_INIT =      0x1C06,
+    FOPACKET_ASSIGN_ID =        0x1C04,
+    // FOPACKET_MOB_INIT = 0x081C, /* Speculation */
 };
 
 /* Generic packet */
@@ -114,6 +117,21 @@ PACK(struct fopacket_friend_find {
     struct player_info players[FO_FRIEND_MAX_PLAYERS];
 });
 
+PACK(struct fopacket_player_init {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint16_t player_id;     /* Player server ID */
+    char name[FO_PLAYER_NAME_MAX_LEN]; /* Player name */
+    uint8_t _unknown_[246]; /* To be analyzed */
+});
+
+PACK(struct fopacket_assign_id {
+    uint16_t len;           /* Packet length */
+    uint16_t type;          /* Packet header */
+    uint16_t player_id;     /* Player server ID */
+    uint8_t _counter;       /* Incremental counter (not used) */
+});
+
 void print_packet(const struct fopacket *packet);
 int get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len);
 int parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet);
@@ -122,6 +140,8 @@ int parse_packet_entity_info(const struct fopacket *packet, struct fopacket_enti
 int parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out);
 int handle_damage(struct fopacket *packet);
 int handle_entity_info(struct fopacket *packet);
+int handle_player_init(struct fopacket *packet);
+int handle_assign_id(struct fopacket *packet);
 int handle_friend_find(struct fopacket *packet);
 
 #endif // __FOPD_PACKETS_H__

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include <winsock2.h>
+#include <stdint.h>
 
 #include <fopd/fopd_consts.h>
 #include <fopd/fopd_types.h>
