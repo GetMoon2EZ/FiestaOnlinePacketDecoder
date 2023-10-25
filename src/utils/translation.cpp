@@ -242,6 +242,36 @@ const std::map<uint8_t, const char*> tr_pclass_na {
     { FOCLASS_TM, "Templar" }
 };
 
+const std::map<uint8_t, const char*> tr_pclass_fr {
+    { FOCLASS_FG, "Guerrier" },
+    { FOCLASS_CF, "Guerrier Ruse" },
+    { FOCLASS_WA, "Combattant" },
+    { FOCLASS_GL, "Gladiateur" },
+    { FOCLASS_KN, "Chevalier" },
+    { FOCLASS_CL, "Prêtre" },
+    { FOCLASS_HC, "Prêtre Superieur" },
+    { FOCLASS_PA, "Paladin" },
+    { FOCLASS_HK, "Chevalier Sacre" },
+    { FOCLASS_GN, "Gardien" },
+    { FOCLASS_AR, "Archer" },
+    { FOCLASS_HA, "Archer Faucon" },
+    { FOCLASS_SC, "Eclaireur" },
+    { FOCLASS_SS, "Tireur Vif" },
+    { FOCLASS_RG, "Garde Forestier" },
+    { FOCLASS_MG, "Mage" },
+    { FOCLASS_WM, "Sorcier Expert" },
+    { FOCLASS_EN, "Enchanteur" },
+    { FOCLASS_WL, "Magicien" },
+    { FOCLASS_WZ, "Sorcier" },
+    { FOCLASS_TR, "Joker" },
+    { FOCLASS_GA, "Rogue" },
+    { FOCLASS_RE, "Predateur" },
+    { FOCLASS_SP, "Lunatique" },
+    { FOCLASS_RP, "Assassin" },
+    { FOCLASS_CR, "Croise" },
+    { FOCLASS_TM, "Templier" }
+};
+
 const char *
 translate_map_name(const char *raw_map)
 {
@@ -255,8 +285,8 @@ translate_map_name(const char *raw_map)
 const char *
 translate_pclass(uint8_t pclass)
 {
-    auto translation = tr_pclass_na.find(pclass);
-    if (translation == tr_pclass_na.end()) {
+    auto translation = tr_pclass_fr.find(pclass);
+    if (translation == tr_pclass_fr.end()) {
         return "Unknown";
     }
     return translation->second;
