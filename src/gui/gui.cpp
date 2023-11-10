@@ -6,6 +6,7 @@
 #include "fopd/fo_ping.h"
 #include "fopd/fopd_utils.h"
 #include "fopd/fopd_translation.h"
+#include "fopd/fopd_packet.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -13,6 +14,7 @@
 #include <vector>
 #include <time.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <inttypes.h>
 #include <iostream>
 #include <algorithm>
@@ -30,12 +32,121 @@ struct Vector2d {
 
 #define PLOT_POLL_TIME      15
 
+/* DPS plot data */
 static double start = 0;
 static std::vector<double> dps;
 static std::vector<double> avg_dps;
 static std::vector<double> rolling_avg_dps;
 static std::vector<double> time_axis;
 static int dps_plot_timeout = 0;
+
+enum FindPlayerColumnID {
+    FindPlayerColumnID_Name,
+    FindPlayerColumnID_Class,
+    FindPlayerColumnID_Level,
+    FindPlayerColumnID_Map,
+    FindPlayerColumnID_LastUpdate,
+};
+
+/* Obtained from the table */
+static ImGuiTableSortSpecs* s_find_player_specs;
+/* Static representation of the player infos (used as a cache) */
+static FindPlayerInfos s_find_player_info;
+
+int ComparePlayerInfosWithSortSpecs(const struct player_info* left, const struct player_info* right) {
+    const struct player_info *a = left;
+    const struct player_info *b = right;
+
+    for (int n = 0; n < s_find_player_specs->SpecsCount; n++) {
+        const ImGuiTableColumnSortSpecs* sort_spec = &s_find_player_specs->Specs[n];
+        if (sort_spec->SortDirection == ImGuiSortDirection_Descending) {
+            /* Swap around */
+            a = right;
+            b = left;
+        }
+
+        // Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
+        // We could also choose to identify columns based on their index (sort_spec->ColumnIndex), which is simpler!
+        switch (sort_spec->ColumnUserID) {
+            case FindPlayerColumnID_Name:
+                return strncmp(a->name, b->name, FO_PLAYER_NAME_STR_LEN) > 0;
+            case FindPlayerColumnID_Class:
+                return strcmp(translate_pclass(a->pclass), translate_pclass(b->pclass)) > 0;
+            case FindPlayerColumnID_Level:
+                return a->level < b->level;
+            case FindPlayerColumnID_Map:
+                return strcmp(translate_map_name(a->raw_map), translate_map_name(b->raw_map)) > 0;
+            case FindPlayerColumnID_LastUpdate:
+                return a->last_seen > b->last_seen;
+            default:
+                break;
+        }
+    }
+
+    /* Default sort order */
+    return a->last_seen > b->last_seen;
+}
+
+enum DPSColumnID {
+    DPSColumnID_ID,
+    DPSColumnID_Name,
+    DPSColumnID_CurrentDPS,
+    DPSColumnID_AverageDPS,
+    DPSColumnID_EffectiveDPS,
+    DPSColumnID_MaxDamage,
+};
+
+struct dps_table_row {
+    uint16_t id;
+    char name[FO_PLAYER_NAME_STR_LEN];
+    uint32_t dps;
+    double avg_dps;
+    double eff_dps;
+    uint32_t max_dmg;
+};
+
+/* Obtained from the table */
+static ImGuiTableSortSpecs* s_dps_specs;
+/* Static representation of the player infos (used as a cache) */
+static std::vector<struct dps_table_row> s_dps_info;
+
+int CompareDPSRowsWithSortSpecs(const struct dps_table_row left, const struct dps_table_row right)
+{
+    struct dps_table_row a = left;
+    struct dps_table_row b = right;
+
+    for (int n = 0; n < s_find_player_specs->SpecsCount; n++) {
+        const ImGuiTableColumnSortSpecs* sort_spec = &s_dps_specs->Specs[n];
+        if (sort_spec->SortDirection == ImGuiSortDirection_Descending) {
+            /* Swap around */
+            a = right;
+            b = left;
+        }
+
+        // Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
+        // We could also choose to identify columns based on their index (sort_spec.ColumnIndex), which is simpler!
+        switch (sort_spec->ColumnUserID) {
+            case DPSColumnID_ID:
+                return a.id < b.id;
+            case DPSColumnID_Name:
+                return strncmp(a.name, b.name, FO_PLAYER_NAME_STR_LEN) > 0;
+            case DPSColumnID_CurrentDPS:
+                return a.dps < b.dps;
+            case DPSColumnID_AverageDPS:
+                return a.avg_dps < b.avg_dps;
+            case DPSColumnID_EffectiveDPS:
+                return a.eff_dps < b.eff_dps;
+            case DPSColumnID_MaxDamage:
+                return a.max_dmg < b.max_dmg;
+            default:
+                break;
+        }
+    }
+
+    /* Default sort order */
+    return a.eff_dps < b.eff_dps;
+}
+
 
 static void show_debug_info(FOPDData *data)
 {
@@ -120,6 +231,39 @@ static void plot_dps_over_time(FOPDData *data)
         dps_plot_timeout = 0;
     }
 
+    /* Allow to select a player for graph display */
+    static uint16_t selected_player_id = 0;
+    std::vector<uint16_t> player_ids = data->getRegisteredPlayerIDs();
+    player_ids.insert(player_ids.begin(), 0);
+    const char *selected_player_name = selected_player_id == 0 ? "All" : data->getPlayerName(selected_player_id);
+
+    if (ImGui::BeginCombo("Graphed player(s)", selected_player_name, 0)) {
+        for (uint16_t n = 0; n < player_ids.size(); n++) {
+            const bool is_selected = (selected_player_id == player_ids[n]);
+            char player_name[FO_PLAYER_NAME_STR_LEN];
+            if (player_ids[n] == 0) {
+                strncpy(player_name, "All", sizeof(player_name));
+            } else {
+                strncpy(player_name, data->getPlayerName(player_ids[n]), sizeof(player_name));
+            }
+
+            if (ImGui::Selectable(player_name, is_selected)) {
+                if (!is_selected) {
+                    std::cout << "[DEBUG] Selected player changed" << std::endl;
+                    /* Change sniffing filter */
+                }
+                selected_player_id = player_ids[n];
+            }
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+
     if (dps_plot_timeout == 0) {
         dps.push_back((double) data->getDPS());
         avg_dps.push_back(data->getDPSAverage());
@@ -149,24 +293,34 @@ static void plot_dps_over_time(FOPDData *data)
 
 static void show_friends(FOPDData *data)
 {
-    std::vector<struct friend_info*> v = data->getFriendInfos();
+    static std::vector<struct player_info*> player_infos;
+    /* getFindPlayerInfos needs to return both a the friend infos and a boolean which tells us whether it has been updated or not */
+    FindPlayerInfos v = data->getFindPlayerInfos();
 
     ImGui::Begin("Players");
 
-    if (ImGui::BeginTable("player_info", 5, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit)) {
-        ImGui::TableSetupColumn("Name");
-        ImGui::TableSetupColumn("Class");
-        ImGui::TableSetupColumn("Level");
-        ImGui::TableSetupColumn("Map");
-        ImGui::TableSetupColumn("Last update");
+    if (ImGui::BeginTable("find_player", 5, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Sortable)) {
+        ImGui::TableSetupColumn("Name", 0, 0.0F, FindPlayerColumnID_Name);
+        ImGui::TableSetupColumn("Class", 0, 0.0F, FindPlayerColumnID_Class);
+        ImGui::TableSetupColumn("Level", 0, 0.0F, FindPlayerColumnID_Level);
+        ImGui::TableSetupColumn("Map", 0, 0.0F, FindPlayerColumnID_Map);
+        ImGui::TableSetupColumn("Last update", 0, 0.0F, FindPlayerColumnID_LastUpdate);
         ImGui::TableHeadersRow();
 
-        if (v.empty()) {
+        /* Do not sort every frame */
+        s_find_player_specs = ImGui::TableGetSortSpecs();
+        if (v.updated || s_find_player_specs->SpecsDirty) {
+            player_infos = v.players;
+            std::sort(player_infos.begin(), player_infos.end(), ComparePlayerInfosWithSortSpecs);
+            s_find_player_specs->SpecsDirty = false;
+        }
+
+        if (player_infos.empty()) {
             ImGui::TableNextColumn();
             ImGui::Text("Click on \"Find friends\"");
         }
 
-        for (struct friend_info *finfo : v) {
+        for (struct player_info *finfo : player_infos) {
             char since[TIME_SINCE_BUFFER_SIZE] = { 0 };
 
             time_since_str(finfo->last_seen, since);
@@ -189,21 +343,13 @@ static void show_friends(FOPDData *data)
     ImGui::End();
 }
 
-struct sort_damages {
-    bool operator()(const std::pair<uint16_t, uint32_t> &left, const std::pair<uint16_t, uint32_t> &right) {
-        return left.second > right.second;
-    }
-};
-
-
 void show_dps_table(FOPDData *data)
 {
     /* Directly ask for what we need */
     std::map<uint16_t, uint32_t> damages = data->getDPSPerPlayer();
     std::map<uint16_t, double> averages = data->getDPSAveragePerPlayer();
+    std::map<uint16_t, double> averages_if = data->getDPSAverageInFightPerPlayer();
     std::map<uint16_t, uint32_t> maxima = data->getMaxDmgPerPlayer();
-    std::vector<std::pair<uint16_t, uint32_t>> damages_sorted(damages.begin(), damages.end());
-    std::sort(damages_sorted.begin(), damages_sorted.end(), sort_damages());
 
     ImGui::Begin("DPS meter");
 
@@ -214,25 +360,50 @@ void show_dps_table(FOPDData *data)
     ImGui::Text("Current DPS: %u", data->getDPS());
     ImGui::Text("Average DPS: %.2f", data->getDPSAverage());
 
-    if (ImGui::BeginTable("dps_info", 5, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit)) {
-        ImGui::TableSetupColumn("ID");
-        ImGui::TableSetupColumn("Name");
-        ImGui::TableSetupColumn("Current DPS");
-        ImGui::TableSetupColumn("Average DPS");
-        ImGui::TableSetupColumn("Max damage");
+    /* Regroup all the data into rows */
+    static std::vector<struct dps_table_row> dps_table_rows;
+    std::vector<struct dps_table_row> new_rows;
+    for (auto const &x: damages) {
+        struct dps_table_row row;
+        row.id = x.first;
+        strncpy(row.name, data->getPlayerName(x.first), FO_PLAYER_NAME_STR_LEN);
+        row.dps = x.second;
+        row.avg_dps = averages[x.first];
+        row.eff_dps = averages_if[x.first];
+        row.max_dmg = maxima[x.first];
+        new_rows.push_back(row);
+    }
+
+    if (ImGui::BeginTable("dps_info", 6, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Sortable)) {
+        ImGui::TableSetupColumn("ID", 0, 0.0F, DPSColumnID_ID);
+        ImGui::TableSetupColumn("Name", 0, 0.0F, DPSColumnID_Name);
+        ImGui::TableSetupColumn("Current DPS", 0, 0.0F, DPSColumnID_CurrentDPS);
+        ImGui::TableSetupColumn("Average DPS overall", 0, 0.0F, DPSColumnID_AverageDPS);
+        ImGui::TableSetupColumn("Average DPS in fight", 0, 0.0F, DPSColumnID_EffectiveDPS);
+        ImGui::TableSetupColumn("Max damage", 0, 0.0F, DPSColumnID_MaxDamage);
         ImGui::TableHeadersRow();
 
-        for (auto const& x : damages_sorted) {
+        s_dps_specs = ImGui::TableGetSortSpecs();
+        bool need_update = true;
+        if (need_update || s_dps_specs->SpecsDirty) {
+            dps_table_rows = new_rows;
+            std::sort(dps_table_rows.begin(), dps_table_rows.end(), CompareDPSRowsWithSortSpecs);
+            s_dps_specs->SpecsDirty = false;
+        }
+
+        for (const struct dps_table_row x : dps_table_rows) {
             ImGui::TableNextColumn();
-            ImGui::Text("%u", x.first);
+            ImGui::Text("%u", x.id);
             ImGui::TableNextColumn();
-            ImGui::Text("%s", data->getPlayerName(x.first));
+            ImGui::Text("%s", x.name);
             ImGui::TableNextColumn();
-            ImGui::Text("%u", x.second);
+            ImGui::Text("%u", x.dps);
             ImGui::TableNextColumn();
-            ImGui::Text("%0.2f", averages[x.first]);
+            ImGui::Text("%0.2f", x.avg_dps);
             ImGui::TableNextColumn();
-            ImGui::Text("%u", maxima[x.first]);
+            ImGui::Text("%0.2f", x.eff_dps);
+            ImGui::TableNextColumn();
+            ImGui::Text("%u", x.max_dmg);
         }
 
         ImGui::EndTable();
@@ -251,14 +422,10 @@ void build_gui(void)
     FOPDData *data = FOPDData::getInstance();
 
     show_debug_info(data);
-
     show_parameters(data);
-
     show_friends(data);
     // ImGui::ShowDemoWindow();
-
     show_dps_table(data);
-
     plot_dps_over_time(data);
 }
 

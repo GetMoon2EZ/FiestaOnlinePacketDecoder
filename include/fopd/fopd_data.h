@@ -15,12 +15,18 @@
 #define ROLLING_AVERAGE_POINT_COUNT     50
 
 
-struct friend_info {
+struct player_info {
     time_t last_seen;                   /* Last time the player was seen */
     char name[FO_PLAYER_NAME_STR_LEN];  /* Player name */
     uint8_t pclass;                     /* Player class (see foclass)*/
     uint8_t level;                      /* Player level */
     char raw_map[FO_MAP_NAME_STR_LEN];  /* Player raw map name (see fopd_translation.h) */
+};
+
+/* What is returned by get_player_infos */
+struct FindPlayerInfos {
+    std::vector<struct player_info*> players;
+    bool updated;
 };
 
 class FOPDData
@@ -46,10 +52,12 @@ public:
     void setTargetRemainingHealth(uint32_t target_health);
     bool setServerIndex(size_t server_index);
 
-    std::vector<struct friend_info*> getFriendInfos(void);
+    FindPlayerInfos getFindPlayerInfos(void);
     char *getPlayerName(uint16_t player_id);
+    std::vector<uint16_t> getRegisteredPlayerIDs(void);
     uint32_t getDPS(void);
     std::map<uint16_t, double> FOPDData::getDPSAveragePerPlayer(void);
+    std::map<uint16_t, double> FOPDData::getDPSAverageInFightPerPlayer(void);
     std::map<uint16_t, uint32_t> FOPDData::getDPSPerPlayer(void);
     std::map<uint16_t, uint32_t> FOPDData::getMaxDmgPerPlayer(void);
     uint32_t getMaxDPS(void);
@@ -70,10 +78,12 @@ private:
     uint32_t ping = 0;                      /* Current server ping latency in ms */
     uint32_t target_remaining_health = 0;   /* Current target remaining HP */
     std::queue<struct fopacket_dmg> dmg_q;  /* Queue to store damage packets to */
-    std::map<char*,  struct friend_info*, cmp_str> friends; /* "Find friends" information mapped by player name */
+    std::map<char*,  struct player_info*, cmp_str> friends; /* "Find friends" information mapped by player name */
+    bool friends_updated;
     std::map<uint16_t, char *> player_ids;          /* Map from player ID to player name */
     std::map<uint16_t, uint32_t> dps_pp;            /* Map from player ID to current DPS */
     std::map<uint16_t, struct data_stream> avg_pp;  /* Map from player ID to average DPS */
+    std::map<uint16_t, struct data_stream> avg_ifpp;/* Map from player ID to average DPS in fight */
     std::map<uint16_t, uint32_t> max_pp;            /* Map from player ID to max damage */
 
     uint32_t dps = 0;

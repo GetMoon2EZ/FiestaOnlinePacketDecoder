@@ -95,16 +95,27 @@ FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     time_t now;
-    struct friend_info *finfo;
+    struct player_info *finfo;
 
     now = time(NULL);
 
+    this->friends_updated = true;
     for (uint8_t i = 0; i < pkt_friends->num_entry; i++) {
-        finfo = (struct friend_info*) calloc(1, sizeof(*finfo));
-        if (finfo == NULL) {
-            fprintf(stderr, "[ERROR] Memory allocation error\n");
-            return;
+        char name[FO_PLAYER_NAME_STR_LEN];
+
+        strncpy(name, pkt_friends->players[i].name, FO_PLAYER_NAME_STR_LEN);
+
+        auto old_info = this->friends.find(name);
+        if (old_info == this->friends.end()) {
+            finfo = (struct player_info*) calloc(1, sizeof(*finfo));
+            if (finfo == NULL) {
+                fprintf(stderr, "[ERROR] Memory allocation error\n");
+                return;
+            }
+        } else {
+            finfo = old_info->second;
         }
+
         finfo->last_seen = now;
         finfo->level = pkt_friends->players[i].level;
         finfo->pclass = pkt_friends->players[i].pclass;
@@ -112,14 +123,6 @@ FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
         finfo->raw_map[FO_MAP_NAME_MAX_LEN] = '\0';
         strncpy(finfo->name, pkt_friends->players[i].name, FO_PLAYER_NAME_MAX_LEN);
         finfo->name[FO_PLAYER_NAME_MAX_LEN] = '\0';
-
-        /* Insert in the map */
-        auto old_info = this->friends.find(finfo->name);
-        if (old_info != this->friends.end()) {
-            auto x = std::move(old_info->second);
-            this->friends.erase(old_info);
-            free(x);
-        }
         this->friends[finfo->name] = finfo;
     }
 }
@@ -222,23 +225,24 @@ void FOPDData::trySetMaxDmg(uint32_t damage)
 /***********/
 
 bool
-compareByTimestamp(const struct friend_info *a, const struct friend_info *b)
+compareByTimestamp(const struct player_info *a, const struct player_info *b)
 {
     return a->last_seen > b->last_seen;
 }
 
-std::vector<struct friend_info*>
-FOPDData::getFriendInfos(void)
+FindPlayerInfos
+FOPDData::getFindPlayerInfos(void)
 {
-    std::vector<struct friend_info*> v;
+    FindPlayerInfos ret;
 
     std::lock_guard<std::mutex> lk(this->lock);
     for (auto const& x : this->friends) {
-        v.push_back(x.second);
+        ret.players.push_back(x.second);
     }
 
-    std::sort(v.begin(), v.end(), compareByTimestamp);
-    return v;
+    ret.updated = this->friends_updated;
+    this->friends_updated = false;
+    return ret;
 }
 
 char *
@@ -251,6 +255,18 @@ FOPDData::getPlayerName(uint16_t player_id)
     }
 
     return player->second;
+}
+
+std::vector<uint16_t>
+FOPDData::getRegisteredPlayerIDs(void)
+{
+    std::vector<uint16_t> ret;
+
+    for (auto const &player: this->player_ids) {
+        ret.push_back(player.first);
+    }
+
+    return ret;
 }
 
 uint32_t FOPDData::getDPS(void)
@@ -266,6 +282,18 @@ FOPDData::getDPSAveragePerPlayer(void)
     std::map<uint16_t, double> ret;
 
     for (auto const &x: this->avg_pp) {
+        ret[x.first] = x.second.avg;
+    }
+    return ret;
+}
+
+std::map<uint16_t, double>
+FOPDData::getDPSAverageInFightPerPlayer(void)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    std::map<uint16_t, double> ret;
+
+    for (auto const &x: this->avg_ifpp) {
         ret[x.first] = x.second.avg;
     }
     return ret;
@@ -396,18 +424,21 @@ FOPDData::updateDPSAveragePerPlayer(void)
         uint32_t dps = 0;
         uint16_t player_id = player_dps.first;
 
-        /* Find current DPS of the player */
-        // auto x_dps = this->dps_pp.find(player_id);
-        // if (x_dps != this->dps_pp.end()) {
-        //     dps = this->dps_pp[player_id];
-        // }
-
         /* Find the recorded average DPS for the player */
         auto x_avg = this->avg_pp.find(player_id);
         if (x_avg == this->avg_pp.end()) {
             this->avg_pp[player_id] = DATA_STREAM_INIT;
         }
         data_stream_push(&this->avg_pp[player_id], player_dps.second);
+
+        /* Also update average DPS while in fight */
+        if (player_dps.second != 0) {
+            auto x_avgif = this->avg_ifpp.find(player_id);
+            if (x_avgif == this->avg_ifpp.end()) {
+                this->avg_ifpp[player_id] = DATA_STREAM_INIT;
+            }
+            data_stream_push(&this->avg_ifpp[player_id], player_dps.second);
+        }
     }
 }
 

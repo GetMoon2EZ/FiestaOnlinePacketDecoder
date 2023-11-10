@@ -176,7 +176,7 @@ parse_packet_player_init(const struct fopacket *packet, struct fopacket_player_i
         return -2;
     }
 
-    if (packet->len != sizeof(*out) - sizeof(out->len)) {
+    if (packet->len < sizeof(*out) - sizeof(out->len)) {
         return -1;
     }
 
@@ -212,12 +212,12 @@ parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_f
     }
 
     noplayer_len = sizeof(*out) - sizeof(out->len) - sizeof(out->players);
-    player_cnt = (packet->len - noplayer_len) / sizeof(struct player_info);
+    player_cnt = (packet->len - noplayer_len) / sizeof(struct nplayer_info);
 
     if (
         packet->len > out->len - sizeof(out->len) ||
-        (packet->len % sizeof(struct player_info)) != noplayer_len ||
-        packet->len < (noplayer_len + sizeof(struct player_info)) ||
+        (packet->len % sizeof(struct nplayer_info)) != noplayer_len ||
+        packet->len < (noplayer_len + sizeof(struct nplayer_info)) ||
         player_cnt > FO_FRIEND_MAX_PLAYERS
     ) {
         return -1;

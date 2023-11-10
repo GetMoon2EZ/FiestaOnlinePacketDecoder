@@ -97,7 +97,7 @@ PACK(struct fopacket_entity_info {
     uint8_t level;          /* Entity level [1-150]*/
 });
 
-PACK(struct player_info {
+PACK(struct nplayer_info {
     uint8_t _unknown_1[4];              /* Not known, set for packing */
     char name[FO_PLAYER_NAME_MAX_LEN];  /* Player name */
     uint8_t _unknown_2[4];              /* Not known, set for packing */
@@ -114,7 +114,7 @@ PACK(struct fopacket_friend_find {
     uint16_t subtype;       /* Packet sub-header (C0 36 for player info ?) */
     uint8_t num_entry;      /* Number of entries in the following array */
     uint8_t _unknown_1[1];  /* Not known, set for packing */
-    struct player_info players[FO_FRIEND_MAX_PLAYERS];
+    struct nplayer_info players[FO_FRIEND_MAX_PLAYERS];
 });
 
 PACK(struct fopacket_player_init {
@@ -122,7 +122,7 @@ PACK(struct fopacket_player_init {
     uint16_t type;          /* Packet header */
     uint16_t player_id;     /* Player server ID */
     char name[FO_PLAYER_NAME_MAX_LEN]; /* Player name */
-    uint8_t _unknown_[246]; /* To be analyzed */
+    uint8_t _unknown_[200]; /* 200 rather than 246 To be analyzed */
 });
 
 PACK(struct fopacket_assign_id {
