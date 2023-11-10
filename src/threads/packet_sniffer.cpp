@@ -85,11 +85,11 @@ process_payloads(network_stash *stash, const uint8_t *data, uint32_t data_len)
             break;
         }
 
-        // printf("New payload (%u): ", payload_len);
-        // for (uint32_t i = 0; i < payload_len; i++) {
-        //     printf("%02X ", data[current_pos + i]);
-        // }
-        // printf("\n");
+        printf("New payload (%u): ", payload_len);
+        for (uint32_t i = 0; i < payload_len; i++) {
+            printf("%02X ", data[current_pos + i]);
+        }
+        printf("\n");
 
         ret = parse_packet(&data[current_pos], payload_len, &packet);
         current_pos += payload_len;

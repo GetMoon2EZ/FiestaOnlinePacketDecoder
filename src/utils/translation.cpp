@@ -1,6 +1,7 @@
 #include "fopd/fopd_translation.h"
 
 #include <stdint.h>
+#include <ctype.h>
 #include <map>
 
 #include "fopd/fopd_utils.h"
@@ -182,6 +183,10 @@ const std::map<const char *, const char *, cmp_str> tr_map_names_fr {
     { "S_Tower0300", "Tour spirale de la corruption (126-140)" }
 };
 
+const std::map<const char *, const char *, cmp_str> tr_dungeon_names_fr = {
+    { "EgmaDn", "Profondeurs des tenebres" },
+};
+
 enum foclass {
     FOCLASS_FG = 0x01,  /* Fighter */
     FOCLASS_CF = 0x02,  /* Clever fighter */
@@ -275,9 +280,24 @@ const std::map<uint8_t, const char*> tr_pclass_fr {
 const char *
 translate_map_name(const char *raw_map)
 {
+    char tmp[255];
+    size_t i;
+
     auto translation = tr_map_names_fr.find(raw_map);
     if (translation == tr_map_names_fr.end()) {
-        return raw_map;
+        /*
+            Check if it is a dungeon
+            Trim off the numbers and look it up
+        */
+        strncpy(tmp, raw_map, sizeof(tmp));
+        i = strlen(tmp);
+        do { } while (isdigit(tmp[i]) && i-- > 0);
+        tmp[i] = '\0';
+        auto dungeon_translation = tr_dungeon_names_fr.find(tmp);
+        if (dungeon_translation == tr_dungeon_names_fr.end()) {
+            return raw_map;
+        }
+        return dungeon_translation->second;
     }
     return translation->second;
 }
