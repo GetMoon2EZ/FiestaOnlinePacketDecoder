@@ -137,7 +137,9 @@ int get_payload_len(const uint8_t *buf, uint32_t buf_size, uint32_t *payload_len
 int parse_packet(const uint8_t *buf, uint32_t buf_size, struct fopacket *packet);
 int parse_packet_damage(const struct fopacket *packet, struct fopacket_dmg *out);
 int parse_packet_entity_info(const struct fopacket *packet, struct fopacket_entity_info *out);
+int parse_packet_player_init(const struct fopacket *packet, struct fopacket_player_init *out);
 int parse_packet_friend_find(const struct fopacket *packet, struct fopacket_friend_find *out);
+
 int handle_damage(struct fopacket *packet);
 int handle_entity_info(struct fopacket *packet);
 int handle_player_init(struct fopacket *packet);
