@@ -7,6 +7,7 @@
 #include "fopd/fopd_utils.h"
 #include "fopd/fopd_translation.h"
 #include "fopd/fopd_packet.h"
+#include "fopd/player.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -233,7 +234,7 @@ static void plot_dps_over_time(FOPDData *data)
 
     /* Allow to select a player for graph display */
     static uint16_t selected_player_id = 0;
-    std::vector<uint16_t> player_ids = data->getRegisteredPlayerIDs();
+    std::vector<uint16_t> player_ids = data->getRegisteredPlayerIDs(true);
     player_ids.insert(player_ids.begin(), 0);
     const char *selected_player_name = selected_player_id == 0 ? "All" : data->getPlayerName(selected_player_id);
 
@@ -346,10 +347,7 @@ static void show_friends(FOPDData *data)
 void show_dps_table(FOPDData *data)
 {
     /* Directly ask for what we need */
-    std::map<uint16_t, uint32_t> damages = data->getDPSPerPlayer();
-    std::map<uint16_t, double> averages = data->getDPSAveragePerPlayer();
-    std::map<uint16_t, double> averages_if = data->getDPSAverageInFightPerPlayer();
-    std::map<uint16_t, uint32_t> maxima = data->getMaxDmgPerPlayer();
+    std::vector<struct player *> players = data->getPlayersInfo(true);
 
     ImGui::Begin("DPS meter");
 
@@ -363,14 +361,14 @@ void show_dps_table(FOPDData *data)
     /* Regroup all the data into rows */
     static std::vector<struct dps_table_row> dps_table_rows;
     std::vector<struct dps_table_row> new_rows;
-    for (auto const &x: damages) {
+    for (auto const &x: players) {
         struct dps_table_row row;
-        row.id = x.first;
-        strncpy(row.name, data->getPlayerName(x.first), FO_PLAYER_NAME_STR_LEN);
-        row.dps = x.second;
-        row.avg_dps = averages[x.first];
-        row.eff_dps = averages_if[x.first];
-        row.max_dmg = maxima[x.first];
+        row.id = x->gid;
+        strncpy(row.name, x->name, FO_PLAYER_NAME_STR_LEN);
+        row.dps = x->current_dps;
+        row.avg_dps = x->dps_avg.avg;
+        row.eff_dps = x->dps_if.avg;
+        row.max_dmg = x->max_dmg;
         new_rows.push_back(row);
     }
 

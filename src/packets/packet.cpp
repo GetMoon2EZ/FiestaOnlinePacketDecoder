@@ -260,13 +260,18 @@ handle_entity_info(struct fopacket *packet)
 {
     int ret;
     struct fopacket_entity_info packet_info;
+    FOPDData *fopd_data = FOPDData::getInstance();
 
     ret = parse_packet_entity_info(packet, &packet_info);
     if (ret != 0) {
         return ret;
     }
 
-    // Do stuff...
+    fopd_data->setPlayerLevel(packet_info.id, packet_info.level);
+    fopd_data->setPlayerMaxHP(packet_info.id, packet_info.max_hp);
+    fopd_data->setPlayerMaxSP(packet_info.id, packet_info.max_sp);
+    fopd_data->setPlayerCurrentHP(packet_info.id, packet_info.current_hp);
+    fopd_data->setPlayerCurrentSP(packet_info.id, packet_info.current_sp);
     return 0;
 }
 
@@ -284,7 +289,7 @@ handle_player_init(struct fopacket *packet)
         return ret;
     }
 
-    fopd_data->setPlayerID(&packet_player);
+    fopd_data->setPlayerGID(packet_player.name, packet_player.player_id);
 
     return 0;
 }
@@ -294,7 +299,6 @@ handle_assign_id(struct fopacket *packet)
 {
     int ret;
     struct fopacket_assign_id id_packet;
-    struct fopacket_player_init packet_player;
     FOPDData *fopd_data = FOPDData::getInstance();
 
     ret = parse_packet_player_init(packet, &id_packet);
@@ -304,10 +308,7 @@ handle_assign_id(struct fopacket *packet)
         return ret;
     }
 
-    strncpy(packet_player.name, "Me :)", FO_PLAYER_NAME_MAX_LEN);
-    packet_player.player_id = id_packet.player_id;
-    fopd_data->setPlayerID(&packet_player);
-
+    fopd_data->setPlayerGID("Me :)", id_packet.player_id);
     return 0;
 }
 

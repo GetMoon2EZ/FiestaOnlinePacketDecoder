@@ -46,7 +46,19 @@ public:
      * @param friends Friend find packet received from the server
      */
     void setFriendInfos(struct fopacket_friend_find *friends);
-    void setPlayerID(struct fopacket_player_init *player);
+
+    /**
+     * @brief Set the GID for a player
+     *
+     * @param player_name Name of the player
+     * @param gid New GID of the player
+     */
+    void setPlayerGID(char *player_name, uint16_t gid);
+    void setPlayerLevel(uint16_t id, uint8_t level);
+    void setPlayerMaxHP(uint16_t id, uint32_t max_hp);
+    void setPlayerMaxSP(uint16_t id, uint32_t max_sp);
+    void setPlayerCurrentHP(uint16_t id, uint32_t current_hp);
+    void setPlayerCurrentSP(uint16_t id, uint32_t current_sp);
     void setDPS(uint32_t dps);
     void setPing(uint32_t ping);
     void setTargetRemainingHealth(uint32_t target_health);
@@ -54,12 +66,9 @@ public:
 
     FindPlayerInfos getFindPlayerInfos(void);
     char *getPlayerName(uint16_t player_id);
-    std::vector<uint16_t> getRegisteredPlayerIDs(void);
+    std::vector<uint16_t> getRegisteredPlayerIDs(bool referenced_only);
+    std::vector<struct player *> getPlayersInfo(bool referenced_only);
     uint32_t getDPS(void);
-    std::map<uint16_t, double> FOPDData::getDPSAveragePerPlayer(void);
-    std::map<uint16_t, double> FOPDData::getDPSAverageInFightPerPlayer(void);
-    std::map<uint16_t, uint32_t> FOPDData::getDPSPerPlayer(void);
-    std::map<uint16_t, uint32_t> FOPDData::getMaxDmgPerPlayer(void);
     uint32_t getMaxDPS(void);
     uint32_t getMaxDmg(void);
     uint32_t getPing(void);
@@ -67,6 +76,9 @@ public:
     double getDPSAverage(void);
     double getDPSRollingAverage(void);
     size_t getServerIndex(void);
+
+    struct player *FindPlayerFromID(uint16_t id);
+    struct player *FindPlayerFromName(char *name);
 
     void operator=(const FOPDData &) = delete;
     FOPDData(FOPDData &other) = delete;
@@ -80,11 +92,9 @@ private:
     std::queue<struct fopacket_dmg> dmg_q;  /* Queue to store damage packets to */
     std::map<char*,  struct player_info*, cmp_str> friends; /* "Find friends" information mapped by player name */
     bool friends_updated;
-    std::map<uint16_t, char *> player_ids;          /* Map from player ID to player name */
-    std::map<uint16_t, uint32_t> dps_pp;            /* Map from player ID to current DPS */
-    std::map<uint16_t, struct data_stream> avg_pp;  /* Map from player ID to average DPS */
-    std::map<uint16_t, struct data_stream> avg_ifpp;/* Map from player ID to average DPS in fight */
-    std::map<uint16_t, uint32_t> max_pp;            /* Map from player ID to max damage */
+
+    std::map<uint16_t, struct player*> players; /* Map from player ID, to player data */
+    std::vector<struct player*> saved_players;  /* List of all players seen so far */
 
     uint32_t dps = 0;
     uint32_t max_dps = 0;

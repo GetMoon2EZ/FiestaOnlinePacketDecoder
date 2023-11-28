@@ -18,6 +18,7 @@
 #include "fopd/fopd_packet.h"
 #include "fopd/fopd_utils.h"
 #include "fopd/data_stream.h"
+#include "fopd/player.h"
 
 
 static FOPDData *instance = NULL;
@@ -59,7 +60,7 @@ FOPDData::updateDPS(void)
 {
     std::lock_guard<std::mutex> lk(this->lock);
     struct timeval now, diff;
-    fopacket_dmg curr_dmg;
+    struct fopacket_dmg curr_dmg;
 
     if (gettimeofday(&now, NULL) != 0) {
         fprintf(stderr, "[ERROR] gettimeofday returned an error: %s\n", strerror(errno));
@@ -130,53 +131,148 @@ FOPDData::setFriendInfos(struct fopacket_friend_find *pkt_friends)
 // TODO Periodically remove friend informations which are too old (and free memory)
 // void FOPDData::cleanupFriend(void);
 
-void
-FOPDData::setPlayerID(struct fopacket_player_init *pkt_player)
+struct player *
+FOPDData::FindPlayerFromID(uint16_t id)
 {
-    char *player_name;
-    auto old_player = this->player_ids.find(pkt_player->player_id);
-    uint16_t old_id;
-    bool had_old_id;
+    struct player* player = NULL;
 
-    /* Remove the player which used to have this ID */
-    if (old_player != this->player_ids.end()) {
-        if (strncmp(old_player->second, pkt_player->name, FO_PLAYER_NAME_MAX_LEN) == 0) {
+    if (this->players.find(id) != this->players.end()) {
+        /* Quick lookup */
+        player = this->players[id];
+    } else {
+        /* Slow lookup */
+        for (struct player *player_it: this->saved_players) {
+            if (player_it->gid == id) {
+                player = player_it;
+                break;
+            }
+        }
+    }
+
+    return player;
+}
+
+struct player *
+FOPDData::FindPlayerFromName(char *name)
+{
+    struct player *player = NULL;
+
+    if (name == NULL) {
+        return player;
+    }
+
+    for (struct player *player_it: this->saved_players) {
+        if (strncmp(player_it->name, name, FO_PLAYER_NAME_MAX_LEN) == 0) {
+            player = player_it;
+            break;
+        }
+    }
+
+    return player;
+}
+
+void
+FOPDData::setPlayerGID(char *player_name, uint16_t gid)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
+
+    player = this->FindPlayerFromName(player_name);
+
+    /* Remove the player at this ID */
+    this->players.erase(gid);
+
+
+    /* Remove the old entry from the map or register a new player */
+    if (player != NULL) {
+        this->players.erase(player->gid);
+        fprintf(stderr, "[DEBUG] Player changed ID: %s (%u)\n", player->name, player->gid);
+    } else {
+        player = player_init();
+        if (player == NULL) {
             return;
         }
-        /* Free old player's name memory */
-        auto old_name = std::move(old_player->second);
-        this->player_ids.erase(old_player);
-        free(old_name);
+        strncpy(player->name, player_name, FO_PLAYER_NAME_MAX_LEN);
+        this->saved_players.push_back(player);
+        fprintf(stderr, "[DEBUG] New player: %s (%u)\n", player->name, player->gid);
     }
 
-    /* Remove the old ID for this player */
-    /* This requires a reverse search but should not be done very often */
-    had_old_id = false;
-    for (auto it = this->player_ids.begin(); it != this->player_ids.end(); ++it) {
-        if (strncmp(it->second, pkt_player->name, FO_PLAYER_NAME_MAX_LEN) == 0) {
-            old_id = it->first;
-            had_old_id = true;
-        }
-    }
+    /*
+     * Don't worry about overwriting another player
+     * old pointers are kept in the saved players vector.
+     */
+    player->gid = gid;
+    this->players[player->gid] = player;
+}
 
-    if (had_old_id) {
-        auto old_id_p = this->player_ids.find(old_id);
-        auto x = std::move(old_id_p->second);
-        this->player_ids.erase(old_id_p);
-        free(x);
-    }
+void
+FOPDData::setPlayerLevel(uint16_t id, uint8_t level)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
 
-    /* Insert the player in the map */
-    player_name = (char *) calloc(FO_PLAYER_NAME_STR_LEN, sizeof(*player_name));
-    if (player_name == NULL) {
-        fprintf(stderr, "[ERROR] Memory allocation error\n");
+    player = this->FindPlayerFromID(id);
+    if (player == NULL) {
         return;
     }
 
-    strncpy(player_name, pkt_player->name, FO_PLAYER_NAME_MAX_LEN);
-    player_name[FO_PLAYER_NAME_MAX_LEN] = '\0';
-    this->player_ids[pkt_player->player_id] = player_name;
-    fprintf(stderr, "Saved player: %s (%u)\n", player_name, pkt_player->player_id);
+    player->level = level;
+}
+
+void
+FOPDData::setPlayerMaxHP(uint16_t id, uint32_t max_hp)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
+
+    player = this->FindPlayerFromID(id);
+    if (player == NULL) {
+        return;
+    }
+
+    player->max_hp = max_hp;
+}
+
+void
+FOPDData::setPlayerMaxSP(uint16_t id, uint32_t max_sp)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
+
+    player = this->FindPlayerFromID(id);
+    if (player == NULL) {
+        return;
+    }
+
+    player->max_sp = max_sp;
+}
+
+void
+FOPDData::setPlayerCurrentHP(uint16_t id, uint32_t current_hp)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
+
+    player = this->FindPlayerFromID(id);
+    if (player == NULL) {
+        return;
+    }
+
+    player->current_hp = current_hp;
+}
+
+void
+FOPDData::setPlayerCurrentSP(uint16_t id, uint32_t current_sp)
+{
+    std::lock_guard<std::mutex> lk(this->lock);
+    struct player *player = NULL;
+
+    player = this->FindPlayerFromID(id);
+    if (player == NULL) {
+        return;
+    }
+
+    player->current_sp = current_sp;
 }
 
 void FOPDData::setDPS(uint32_t dps)
@@ -248,22 +344,28 @@ FOPDData::getFindPlayerInfos(void)
 char *
 FOPDData::getPlayerName(uint16_t player_id)
 {
-    auto player = this->player_ids.find(player_id);
+    struct player *player = NULL;
 
-    if (player == this->player_ids.end()) {
+    player = this->FindPlayerFromID(player_id);
+    if (player == NULL) {
         return "Unknown";
     }
-
-    return player->second;
+    return player->name;
 }
 
 std::vector<uint16_t>
-FOPDData::getRegisteredPlayerIDs(void)
+FOPDData::getRegisteredPlayerIDs(bool referenced_only)
 {
     std::vector<uint16_t> ret;
 
-    for (auto const &player: this->player_ids) {
-        ret.push_back(player.first);
+    if (referenced_only) {
+        for (auto const &player: this->players) {
+            ret.push_back(player.first);
+        }
+    } else {
+        for (auto const &player: this->saved_players) {
+            ret.push_back(player->gid);
+        }
     }
 
     return ret;
@@ -275,42 +377,22 @@ uint32_t FOPDData::getDPS(void)
     return this->dps;
 }
 
-std::map<uint16_t, double>
-FOPDData::getDPSAveragePerPlayer(void)
+std::vector<struct player *>
+FOPDData::getPlayersInfo(bool referenced_only)
 {
-    std::lock_guard<std::mutex> lk(this->lock);
-    std::map<uint16_t, double> ret;
+    std::vector<struct player*> ret;
 
-    for (auto const &x: this->avg_pp) {
-        ret[x.first] = x.second.avg;
+    if (referenced_only) {
+        for (const auto &it: this->players) {
+            ret.push_back(it.second);
+        }
+    } else {
+        for (const auto &it: this->saved_players) {
+            ret.push_back(it);
+        }
     }
+
     return ret;
-}
-
-std::map<uint16_t, double>
-FOPDData::getDPSAverageInFightPerPlayer(void)
-{
-    std::lock_guard<std::mutex> lk(this->lock);
-    std::map<uint16_t, double> ret;
-
-    for (auto const &x: this->avg_ifpp) {
-        ret[x.first] = x.second.avg;
-    }
-    return ret;
-}
-
-std::map<uint16_t, uint32_t>
-FOPDData::getDPSPerPlayer(void)
-{
-    std::lock_guard<std::mutex> lk(this->lock);
-    return this->dps_pp;
-}
-
-std::map<uint16_t, uint32_t>
-FOPDData::getMaxDmgPerPlayer(void)
-{
-    std::lock_guard<std::mutex> lk(this->lock);
-    return this->max_pp;
 }
 
 uint32_t FOPDData::getMaxDPS(void)
@@ -380,10 +462,12 @@ void
 FOPDData::updateDPSPerPlayer(void)
 {
     std::queue<struct fopacket_dmg> copy_q = this->dmg_q;
+    struct player *player = NULL;
+    struct player *target = NULL;
 
     /* Reset previous DPS, it will be recalculated now */
-    for (auto const &x: this->dps_pp) {
-        this->dps_pp[x.first] = 0;
+    for (struct player *i_player: this->saved_players) {
+        i_player->current_dps = 0;
     }
 
     while (!copy_q.empty()) {
@@ -391,26 +475,19 @@ FOPDData::updateDPSPerPlayer(void)
         uint16_t origin_id = pkt_dmg.origin_id;
         uint32_t max_dmg = 0;
 
-        /* Initialize at 0 */
-        auto x_dps = this->dps_pp.find(origin_id);
-        if (x_dps == this->dps_pp.end()) {
-            this->dps_pp[origin_id] = 0;
-        }
+        player = this->FindPlayerFromID(pkt_dmg.origin_id);
 
         for (uint8_t i = 0; i < pkt_dmg.hit_cnt; i++) {
-            this->dps_pp[origin_id] += pkt_dmg.dinfo[i].inflicted_dmg;
-
-            if (pkt_dmg.dinfo[i].inflicted_dmg > max_dmg) {
-                max_dmg = pkt_dmg.dinfo[i].inflicted_dmg;
+            if (player != NULL) {
+                player->current_dps += pkt_dmg.dinfo[i].inflicted_dmg;
+                if (pkt_dmg.dinfo[i].inflicted_dmg > player->max_dmg) {
+                    player->max_dmg = pkt_dmg.dinfo[i].inflicted_dmg;
+                }
             }
-        }
-
-        /* Update the max damage for this player */
-        auto x_max = this->max_pp.find(origin_id);
-        if (x_max == this->max_pp.end()) {
-            this->max_pp[origin_id] = max_dmg;
-        } else if (this->max_pp[origin_id] < max_dmg) {
-            this->max_pp[origin_id] = max_dmg;
+            target = this->FindPlayerFromID(pkt_dmg.dinfo[i].target_id);
+            if (target != NULL) {
+                target->current_hp = pkt_dmg.dinfo[i].remaining_hp;
+            }
         }
 
         copy_q.pop();
@@ -420,24 +497,10 @@ FOPDData::updateDPSPerPlayer(void)
 void
 FOPDData::updateDPSAveragePerPlayer(void)
 {
-    for (const auto &player_dps: this->dps_pp) {
-        uint32_t dps = 0;
-        uint16_t player_id = player_dps.first;
-
-        /* Find the recorded average DPS for the player */
-        auto x_avg = this->avg_pp.find(player_id);
-        if (x_avg == this->avg_pp.end()) {
-            this->avg_pp[player_id] = DATA_STREAM_INIT;
-        }
-        data_stream_push(&this->avg_pp[player_id], player_dps.second);
-
-        /* Also update average DPS while in fight */
-        if (player_dps.second != 0) {
-            auto x_avgif = this->avg_ifpp.find(player_id);
-            if (x_avgif == this->avg_ifpp.end()) {
-                this->avg_ifpp[player_id] = DATA_STREAM_INIT;
-            }
-            data_stream_push(&this->avg_ifpp[player_id], player_dps.second);
+    for (struct player *player: this->saved_players) {
+        data_stream_push(&player->dps_avg, player->current_dps);
+        if (player->current_dps != 0) {
+            data_stream_push(&player->dps_if, player->current_dps);
         }
     }
 }

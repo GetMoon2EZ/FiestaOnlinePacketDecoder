@@ -12,6 +12,8 @@ target_sources(
     "utils/translation.cpp"
     "utils/data_stream.cpp"
 
+    "entity/player.cpp"
+
     "packets/packet.cpp"
     "packets/network_stash.cpp"
 
